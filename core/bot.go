@@ -16,19 +16,22 @@ type Bot struct {
 	Commands map[string]command
 }
 
-func (b *Bot) Register(name string, proc command) {
-    b.Commands[name] = proc
+func (b *Bot) RegisterCommand(name string, proc command) {
+	b.Commands[b.Prefix+name] = proc
 }
 
-func (b *Bot) Unregister(name string) {
-    delete(b.Commands, name)
+func (b *Bot) UnregisterCommand(name string) {
+	delete(b.Commands, b.Prefix+name)
 }
 
-func NewBot(token, prefix string) Bot {
-    commands := make(map[string]command)
-	return Bot{
-		Token:  token,
-		Prefix: prefix,
-        Commands: commands,
+func NewBot(token, prefix string) *Bot {
+	commands := make(map[string]command)
+	commands[prefix+"ping"] = ping
+	commands[prefix+"stat"] = stat
+
+	return &Bot{
+		Token:    token,
+		Prefix:   prefix,
+		Commands: commands,
 	}
 }
