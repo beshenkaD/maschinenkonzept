@@ -8,12 +8,20 @@ import (
 // TODO: добавить помимо command ещё и listener поверх которого можно будет
 // Реализовать антиспам/сообщения по таймеру/реакцию на вход/выход из беседы и баны
 
+// listener - команда которая реагирует на все сообщения
 type command func(session *api.VK, message events.MessageNewObject)
 
 type Bot struct {
-	Token    string
-	Prefix   string
-	Commands map[string]command
+	Session   *api.VK
+	Prefix    string
+	Commands  map[string]command
+	Listeners []command
+}
+
+func (b *Bot) RunListeners(message events.MessageNewObject) {
+	for _, l := range b.Listeners {
+		go l(b.Session, message)
+	}
 }
 
 func (b *Bot) RegisterCommand(name string, proc command) {
@@ -29,9 +37,13 @@ func NewBot(token, prefix string) *Bot {
 	commands[prefix+"ping"] = ping
 	commands[prefix+"stat"] = stat
 
+	listeners := make([]command, 1)
+	listeners[0] = hello
+
 	return &Bot{
-		Token:    token,
-		Prefix:   prefix,
-		Commands: commands,
+		Session:   api.NewVK(token),
+		Prefix:    prefix,
+		Commands:  commands,
+		Listeners: listeners,
 	}
 }

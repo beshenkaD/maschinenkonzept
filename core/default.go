@@ -10,6 +10,17 @@ import (
 	"runtime"
 )
 
+func hello(session *api.VK, message events.MessageNewObject) {
+    if message.Message.Action.Type == "chat_invite_user" {
+        b := params.NewMessagesSendBuilder()
+        b.Message("Привет!")
+        b.RandomID(0)
+        b.PeerID(message.Message.PeerID)
+
+        session.MessagesSend(b.Params)
+    }
+}
+
 func ping(session *api.VK, message events.MessageNewObject) {
 	b := params.NewMessagesSendBuilder()
 	b.Message("pong")
