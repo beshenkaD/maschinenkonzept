@@ -1,49 +1,94 @@
 package core
 
 import (
+	"context"
 	"github.com/SevereCloud/vksdk/v2/api"
 	"github.com/SevereCloud/vksdk/v2/events"
+	"github.com/SevereCloud/vksdk/v2/longpoll-bot"
+	"log"
+	"strings"
 )
 
-// TODO: добавить помимо command ещё и listener поверх которого можно будет
-// Реализовать антиспам/сообщения по таймеру/реакцию на вход/выход из беседы и баны
-
-// listener - команда которая реагирует на все сообщения
-type command func(session *api.VK, message events.MessageNewObject)
-
 type Bot struct {
-	Session   *api.VK
-	Prefix    string
-	Commands  map[string]command
-	Listeners []command
+	Session  *api.VK
+	SelfName string
+	SelfID   int
+	Prefix   byte
+	Modules  []Module
+	commands map[string]Command
+	hooks    moduleHooks
 }
 
-func (b *Bot) RunListeners(message events.MessageNewObject) {
-	for _, l := range b.Listeners {
-		go l(b.Session, message)
+func New(token string, prefix byte, modules []Module) *Bot {
+	session := api.NewVK(token)
+	group, err := session.GroupsGetByID(nil)
+
+	if err != nil {
+		return nil
+	}
+
+	b := &Bot{
+		Session:  session,
+		Prefix:   prefix,
+		SelfName: group[0].Name,
+		SelfID:   group[0].ID,
+		commands: make(map[string]Command),
+	}
+
+	for _, m := range modules {
+		b.Modules = append(b.Modules, m)
+		b.RegisterModule(m)
+	}
+
+	return b
+}
+
+// TODO: Закончить ветку else, добавить поддержку help'а
+func (b *Bot) ProcessCommand(msg events.MessageNewObject) {
+	text := msg.Message.Text
+
+	if len(text) > 1 && text[0] == b.Prefix {
+		args := strings.Split(text[1:], " ")
+		key := args[0]
+
+		c, ok := b.commands[key]
+		if ok {
+			go c.Run(msg, args[1:], b)
+		}
+	} else {
+		action := msg.Message.Action.Type
+
+		switch action {
+		case "chat_invite_user":
+			for _, h := range b.hooks.OnInviteUser {
+				go h.OnInviteUser(b, msg)
+			}
+		case "chat_kick_user":
+			for _, h := range b.hooks.OnKickUser {
+				go h.OnKickUser(b, msg)
+			}
+		default:
+			for _, h := range b.hooks.OnMessage {
+				go h.OnMessage(b, msg)
+			}
+		}
 	}
 }
 
-func (b *Bot) RegisterCommand(name string, proc command) {
-	b.Commands[b.Prefix+name] = proc
-}
+func (b *Bot) Run() {
+	lp, err := longpoll.NewLongPoll(b.Session, b.SelfID)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-func (b *Bot) UnregisterCommand(name string) {
-	delete(b.Commands, b.Prefix+name)
-}
+	lp.MessageNew(func(_ context.Context, obj events.MessageNewObject) {
+		log.Printf("%d: %s", obj.Message.PeerID, obj.Message.Text)
 
-func NewBot(token, prefix string) *Bot {
-	commands := make(map[string]command)
-	commands[prefix+"ping"] = ping
-	commands[prefix+"stat"] = stat
+		b.ProcessCommand(obj)
+	})
 
-	listeners := make([]command, 1)
-	listeners[0] = hello
-
-	return &Bot{
-		Session:   api.NewVK(token),
-		Prefix:    prefix,
-		Commands:  commands,
-		Listeners: listeners,
+	log.Println("Start Long Poll")
+	if err := lp.Run(); err != nil {
+		log.Fatal(err)
 	}
 }
