@@ -86,17 +86,23 @@ func (b *Bot) ProcessCommand(msg events.MessageNewObject) {
 
 			go c.Run(msg, len(args[1:]), args[1:], b)
 
-            for _, h := range b.hooks.OnCommand {
-                go h.OnCommand(b, msg)
-            }
+			for _, h := range b.hooks.OnCommand {
+				go h.OnCommand(b, msg)
+			}
 		}
 	} else {
 		action := msg.Message.Action.Type
 
 		switch action {
 		case "chat_invite_user":
-			for _, h := range b.hooks.OnInviteUser {
-				go h.OnInviteUser(b, msg)
+			if msg.Message.Action.MemberID == (b.SelfID * -1) {
+				for _, h := range b.hooks.OnInviteBot {
+					go h.OnInviteBot(b, msg)
+				}
+			} else {
+				for _, h := range b.hooks.OnInviteUser {
+					go h.OnInviteUser(b, msg)
+				}
 			}
 		case "chat_kick_user":
 			for _, h := range b.hooks.OnKickUser {
@@ -110,9 +116,13 @@ func (b *Bot) ProcessCommand(msg events.MessageNewObject) {
 			for _, h := range b.hooks.OnUnpinMessage {
 				go h.OnUnpinMessage(b, msg)
 			}
-        case "chat_invite_user_by_link":
+		case "chat_invite_user_by_link":
 			for _, h := range b.hooks.OnInviteByLink {
 				go h.OnInviteByLink(b, msg)
+			}
+		case "chat_create":
+			for _, h := range b.hooks.OnChatCreate {
+				go h.OnChatCreate(b, msg)
 			}
 		default:
 			for _, h := range b.hooks.OnMessage {

@@ -30,6 +30,10 @@ func (w *BaseModule) OnPinMessage(bot *core.Bot, msg events.MessageNewObject) {
     apiutil.Send(bot.Session, "нахуй ты это сделал?", msg.Message.PeerID)
 }
 
+func (w *BaseModule) OnInviteBot(bot *core.Bot, msg events.MessageNewObject) {
+    apiutil.Send(bot.Session, "Спасибо что добавили меня", msg.Message.PeerID)
+}
+
 func (w *BaseModule) OnUnpinMessage(bot *core.Bot, msg events.MessageNewObject) {
     apiutil.Send(bot.Session, "молодец.", msg.Message.PeerID)
 }

@@ -55,6 +55,18 @@ type ModuleOnInviteByLink interface {
 	OnInviteByLink(*Bot, events.MessageNewObject) 
 }
 
+// Хук для создания чата
+type ModuleOnChatCreate interface {
+	Module
+	OnChatCreate(*Bot, events.MessageNewObject) 
+}
+
+// Хук для приглашения бота (этого)
+type ModuleOnInviteBot interface {
+	Module
+	OnInviteBot(*Bot, events.MessageNewObject) 
+}
+
 type moduleHooks struct {
 	OnMessage      []ModuleOnMessage
 	OnCommand      []ModuleOnCommand
@@ -63,6 +75,8 @@ type moduleHooks struct {
 	OnPinMessage   []ModuleOnPinMessage
 	OnUnpinMessage []ModuleOnUnpinMessage
 	OnInviteByLink []ModuleOnInviteByLink
+    OnChatCreate   []ModuleOnChatCreate
+    OnInviteBot    []ModuleOnInviteBot
 }
 
 // -------------------------------- //
@@ -126,6 +140,14 @@ func (b *Bot) RegisterModule(m Module) {
 
 	if h, ok := m.(ModuleOnInviteByLink); ok {
 		b.hooks.OnInviteByLink = append(b.hooks.OnInviteByLink, h)
+	}
+
+	if h, ok := m.(ModuleOnChatCreate); ok {
+		b.hooks.OnChatCreate = append(b.hooks.OnChatCreate, h)
+	}
+
+	if h, ok := m.(ModuleOnInviteBot); ok {
+		b.hooks.OnInviteBot = append(b.hooks.OnInviteBot, h)
 	}
 }
 
