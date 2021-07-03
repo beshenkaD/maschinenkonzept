@@ -166,8 +166,6 @@ func (b *Bot) ProcessMessage(msg events.MessageNewObject) {
 }
 
 func (b *Bot) Run() {
-    // Run hooks on tick
-
     go func() {
         for range time.Tick(time.Second) {
             for _, h := range b.hooks.OnTick {
