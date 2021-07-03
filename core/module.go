@@ -16,43 +16,43 @@ type Module interface {
 // Хук для нового сообщения
 type ModuleOnMessage interface {
 	Module
-	OnMessage(*Bot, events.MessageNewObject) error
+	OnMessage(*Bot, events.MessageNewObject)
 }
 
 // Хук для команды (команды отделяются от обычных сообщений)
 type ModuleOnCommand interface {
 	Module
-	OnCommand(*Bot, events.MessageNewObject) error
+	OnCommand(*Bot, events.MessageNewObject)
 }
 
 // Хук для добавления пользователя в беседу
 type ModuleOnInviteUser interface {
 	Module
-	OnInviteUser(*Bot, events.MessageNewObject) error
+	OnInviteUser(*Bot, events.MessageNewObject)
 }
 
 // Хук для кика пользователя из беседы
 type ModuleOnKickUser interface {
 	Module
-	OnKickUser(*Bot, events.MessageNewObject) error
+	OnKickUser(*Bot, events.MessageNewObject)
 }
 
 // Хук для закрепления сообщения
 type ModuleOnPinMessage interface {
 	Module
-	OnPinMessage(*Bot, events.MessageNewObject) error
+	OnPinMessage(*Bot, events.MessageNewObject) 
 }
 
 // Хук для открепления сообщения
 type ModuleOnUnpinMessage interface {
 	Module
-	OnUnpinMessage(*Bot, events.MessageNewObject) error
+	OnUnpinMessage(*Bot, events.MessageNewObject) 
 }
 
 // Хук для вступления по ссылке
 type ModuleOnInviteByLink interface {
 	Module
-	OnInviteByLink(*Bot, events.MessageNewObject) error
+	OnInviteByLink(*Bot, events.MessageNewObject) 
 }
 
 type moduleHooks struct {
@@ -86,10 +86,10 @@ type CommandInfo struct {
 	Desc string
 }
 
+// TODO: Определиться нужно ли возвращать error
 // Команда это любая команда адресованная боту
 type Command interface {
-	//                           аргументы
-	Run(events.MessageNewObject, []string, *Bot) error
+	Run(events.MessageNewObject, int, []string, *Bot)
 	Usage() *CommandUsage
 	Info() *CommandInfo
 }
@@ -110,6 +110,22 @@ func (b *Bot) RegisterModule(m Module) {
 
 	if h, ok := m.(ModuleOnInviteUser); ok {
 		b.hooks.OnInviteUser = append(b.hooks.OnInviteUser, h)
+	}
+
+	if h, ok := m.(ModuleOnKickUser); ok {
+		b.hooks.OnKickUser = append(b.hooks.OnKickUser, h)
+	}
+
+	if h, ok := m.(ModuleOnPinMessage); ok {
+		b.hooks.OnPinMessage = append(b.hooks.OnPinMessage, h)
+	}
+
+	if h, ok := m.(ModuleOnUnpinMessage); ok {
+		b.hooks.OnUnpinMessage = append(b.hooks.OnUnpinMessage, h)
+	}
+
+	if h, ok := m.(ModuleOnInviteByLink); ok {
+		b.hooks.OnInviteByLink = append(b.hooks.OnInviteByLink, h)
 	}
 }
 

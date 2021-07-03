@@ -2,9 +2,11 @@ package core
 
 import (
 	"context"
+	"fmt"
 	"github.com/SevereCloud/vksdk/v2/api"
 	"github.com/SevereCloud/vksdk/v2/events"
 	"github.com/SevereCloud/vksdk/v2/longpoll-bot"
+	"github.com/beshenkaD/maschinenkonzept/apiutil"
 	"log"
 	"strings"
 )
@@ -43,7 +45,24 @@ func New(token string, prefix byte, modules []Module) *Bot {
 	return b
 }
 
-// TODO: Закончить ветку else, добавить поддержку help'а
+func processUsage(usage *CommandUsage, name string) string {
+	s := "Команда: " + name + "\n"
+	s += "Описание: " + usage.Desc + "\n"
+
+	if len(usage.Params) != 0 {
+		for _, p := range usage.Params {
+			s += fmt.Sprintf("-- %s: %s", p.Name, p.Desc)
+		}
+	}
+
+	return s
+}
+
+func processInfo(info *CommandInfo) string {
+	s := fmt.Sprintf("Команда: %s\n%s", info.Name, info.Desc)
+	return s
+}
+
 func (b *Bot) ProcessCommand(msg events.MessageNewObject) {
 	text := msg.Message.Text
 
@@ -53,7 +72,23 @@ func (b *Bot) ProcessCommand(msg events.MessageNewObject) {
 
 		c, ok := b.commands[key]
 		if ok {
-			go c.Run(msg, args[1:], b)
+			if len(args) > 1 {
+				if args[1] == "usage" {
+					apiutil.Send(b.Session, processUsage(c.Usage(), c.Info().Name), msg.Message.PeerID)
+					return
+				}
+				if args[1] == "info" {
+					apiutil.Send(b.Session, processInfo(c.Info()), msg.Message.PeerID)
+
+					return
+				}
+			}
+
+			go c.Run(msg, len(args[1:]), args[1:], b)
+
+            for _, h := range b.hooks.OnCommand {
+                go h.OnCommand(b, msg)
+            }
 		}
 	} else {
 		action := msg.Message.Action.Type
@@ -66,6 +101,18 @@ func (b *Bot) ProcessCommand(msg events.MessageNewObject) {
 		case "chat_kick_user":
 			for _, h := range b.hooks.OnKickUser {
 				go h.OnKickUser(b, msg)
+			}
+		case "chat_pin_message":
+			for _, h := range b.hooks.OnPinMessage {
+				go h.OnPinMessage(b, msg)
+			}
+		case "chat_unpin_message":
+			for _, h := range b.hooks.OnUnpinMessage {
+				go h.OnUnpinMessage(b, msg)
+			}
+        case "chat_invite_user_by_link":
+			for _, h := range b.hooks.OnInviteByLink {
+				go h.OnInviteByLink(b, msg)
 			}
 		default:
 			for _, h := range b.hooks.OnMessage {
