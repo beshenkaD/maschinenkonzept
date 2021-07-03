@@ -6,6 +6,9 @@ import (
 	"github.com/SevereCloud/vksdk/v2/events"
 	"github.com/beshenkaD/maschinenkonzept/apiutil"
 	"github.com/beshenkaD/maschinenkonzept/core"
+	"runtime"
+    "fmt"
+    "time"
 )
 
 type BaseModule struct{}
@@ -15,32 +18,21 @@ func New() *BaseModule {
 }
 
 func (w *BaseModule) Name() string {
-	return "Базовый модуль"
+	return "Основа"
 }
 
 func (w *BaseModule) OnInviteUser(bot *core.Bot, msg events.MessageNewObject) {
-	apiutil.Send(bot.Session, "Привет!", msg.Message.PeerID)
+	apiutil.Send(bot.Session, "Привет! 👋", msg.Message.PeerID)
 }
 
 func (w *BaseModule) OnKickUser(bot *core.Bot, msg events.MessageNewObject) {
-	apiutil.Send(bot.Session, "Пока-пока :(", msg.Message.PeerID)
-}
-
-func (w *BaseModule) OnPinMessage(bot *core.Bot, msg events.MessageNewObject) {
-	apiutil.Send(bot.Session, "нахуй ты это сделал?", msg.Message.PeerID)
-}
-
-func (w *BaseModule) OnInviteBot(bot *core.Bot, msg events.MessageNewObject) {
-	apiutil.Send(bot.Session, "Спасибо что добавили меня", msg.Message.PeerID)
-}
-
-func (w *BaseModule) OnUnpinMessage(bot *core.Bot, msg events.MessageNewObject) {
-	apiutil.Send(bot.Session, "молодец.", msg.Message.PeerID)
+	apiutil.Send(bot.Session, "Пока 👋", msg.Message.PeerID)
 }
 
 func (w *BaseModule) Commands() []core.Command {
 	return []core.Command{
 		&pingCommand{},
+        &statCommand{},
 	}
 }
 
@@ -53,29 +45,49 @@ type pingCommand struct{}
 func (c *pingCommand) Info() *core.CommandInfo {
 	return &core.CommandInfo{
 		Name: "Ping",
-		Desc: "Проверить работоспособность бота (или поиграть в пинг-понг) :)",
+		Desc: "Проверяет работоспособность бота и позволяет поиграть с ним в пинг-понг⚾",
 	}
 }
 
 func (c *pingCommand) Run(msg events.MessageNewObject, argc int, argv []string, bot *core.Bot) {
-	if argc == 0 {
-		apiutil.Send(bot.Session, "pong", msg.Message.PeerID)
-
-		return
-	}
-
-	if argv[0] == "ru" {
-		apiutil.Send(bot.Session, "понг", msg.Message.PeerID)
-
-		return
-	}
+	apiutil.Send(bot.Session, "pong", msg.Message.PeerID)
 }
 
 func (c *pingCommand) Usage() *core.CommandUsage {
 	return &core.CommandUsage{
-		Desc: "Проверяет работспособность бота",
-		Params: []core.CommandUsageParam{
-			{Name: "ru", Desc: "Бот ответит вам по-русски", Optional: true},
-		},
+		Desc:   "Проверяет работоспособность бота",
+		Params: []core.CommandUsageParam{},
+	}
+}
+
+type statCommand struct{}
+
+func (c *statCommand) Info() *core.CommandInfo {
+	return &core.CommandInfo{
+		Name: "Stat",
+		Desc: "Выводит статистику бота 🚀",
+	}
+}
+
+func (c *statCommand) Run(msg events.MessageNewObject, argc int, argv []string, bot *core.Bot) {
+	s := `⚙ Запущен как: %s
+⚙ Uptime: %s
+⚙ Сообщений обработано: %d
+⚙ Потребление памяти (alloc): %v MiB
+`
+    var m runtime.MemStats
+    runtime.ReadMemStats(&m)
+    v := m.Alloc / 1024 / 1024
+    u := time.Since(bot.StartTime)
+
+    s = fmt.Sprintf(s, bot.SelfName, u, bot.Processed, v)
+
+    apiutil.Send(bot.Session, s, msg.Message.PeerID)
+}
+
+func (c *statCommand) Usage() *core.CommandUsage {
+	return &core.CommandUsage{
+		Desc: "Выводит статистику бота",
+		Params: []core.CommandUsageParam{},
 	}
 }

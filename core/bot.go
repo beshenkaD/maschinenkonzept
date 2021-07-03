@@ -9,6 +9,7 @@ import (
 	"github.com/beshenkaD/maschinenkonzept/apiutil"
 	"log"
 	"strings"
+	"time"
 )
 
 type Bot struct {
@@ -19,6 +20,9 @@ type Bot struct {
 	Modules  []Module
 	commands map[string]Command
 	hooks    moduleHooks
+
+	Processed uint
+	StartTime time.Time
 }
 
 func New(token string, prefix byte, modules []Module) *Bot {
@@ -30,11 +34,13 @@ func New(token string, prefix byte, modules []Module) *Bot {
 	}
 
 	b := &Bot{
-		Session:  session,
-		Prefix:   prefix,
-		SelfName: group[0].Name,
-		SelfID:   group[0].ID,
-		commands: make(map[string]Command),
+		Session:   session,
+		Prefix:    prefix,
+		SelfName:  group[0].Name,
+		SelfID:    group[0].ID,
+		commands:  make(map[string]Command),
+		Processed: 0,
+		StartTime: time.Now(),
 	}
 
 	for _, m := range modules {
@@ -46,12 +52,26 @@ func New(token string, prefix byte, modules []Module) *Bot {
 }
 
 func processUsage(usage *CommandUsage, name string) string {
-	s := "Команда: " + name + "\n"
-	s += "Описание: " + usage.Desc + "\n"
+	s := "📝%s -- %s\n\n"
 
-	if len(usage.Params) != 0 {
+	s = fmt.Sprintf(s, strings.ToLower(name), usage.Desc)
+
+	if len(usage.Params) > 0 {
+		i := 1
+		s += "⚙ Параметры:\n"
+
 		for _, p := range usage.Params {
-			s += fmt.Sprintf("-- %s: %s", p.Name, p.Desc)
+			var opt string
+
+			if p.Optional {
+				opt = ""
+			} else {
+				opt = "(обязательный)"
+			}
+
+			s += fmt.Sprintf("%d. %s -- %s %s\n", i, p.Name, p.Desc, opt)
+
+			i++
 		}
 	}
 
@@ -59,11 +79,24 @@ func processUsage(usage *CommandUsage, name string) string {
 }
 
 func processInfo(info *CommandInfo) string {
-	s := fmt.Sprintf("Команда: %s\n%s", info.Name, info.Desc)
-	return s
+	s := "⚙ %s -- %s"
+
+	return fmt.Sprintf(s, info.Name, info.Desc)
 }
 
-func (b *Bot) ProcessCommand(msg events.MessageNewObject) {
+func in(s string, a []string) bool {
+	for _, e := range a {
+		if e == s {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (b *Bot) ProcessMessage(msg events.MessageNewObject) {
+	b.Processed++
+
 	text := msg.Message.Text
 
 	if len(text) > 1 && text[0] == b.Prefix {
@@ -73,11 +106,11 @@ func (b *Bot) ProcessCommand(msg events.MessageNewObject) {
 		c, ok := b.commands[key]
 		if ok {
 			if len(args) > 1 {
-				if args[1] == "usage" {
+				if in(args[1], []string{"помощь", "хелп", "help", "usage"}) {
 					apiutil.Send(b.Session, processUsage(c.Usage(), c.Info().Name), msg.Message.PeerID)
 					return
 				}
-				if args[1] == "info" {
+				if in(args[1], []string{"info", "инфо", "информация"}) {
 					apiutil.Send(b.Session, processInfo(c.Info()), msg.Message.PeerID)
 
 					return
@@ -139,9 +172,9 @@ func (b *Bot) Run() {
 	}
 
 	lp.MessageNew(func(_ context.Context, obj events.MessageNewObject) {
-		log.Printf("%d: %s", obj.Message.PeerID, obj.Message.Text)
+		// log.Printf("%d: %s", obj.Message.PeerID, obj.Message.Text)
 
-		b.ProcessCommand(obj)
+		b.ProcessMessage(obj)
 	})
 
 	log.Println("Start Long Poll")
