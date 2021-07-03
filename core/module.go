@@ -67,6 +67,12 @@ type ModuleOnInviteBot interface {
 	OnInviteBot(*Bot, events.MessageNewObject)
 }
 
+// Хук выполняется каждую секунду
+type ModuleOnTick interface {
+    Module
+    OnTick(*Bot)
+}
+
 type moduleHooks struct {
 	OnMessage      []ModuleOnMessage
 	OnCommand      []ModuleOnCommand
@@ -77,6 +83,7 @@ type moduleHooks struct {
 	OnInviteByLink []ModuleOnInviteByLink
 	OnChatCreate   []ModuleOnChatCreate
 	OnInviteBot    []ModuleOnInviteBot
+    OnTick         []ModuleOnTick
 }
 
 // -------------------------------- //
@@ -148,6 +155,10 @@ func (b *Bot) RegisterModule(m Module) {
 
 	if h, ok := m.(ModuleOnInviteBot); ok {
 		b.hooks.OnInviteBot = append(b.hooks.OnInviteBot, h)
+	}
+
+	if h, ok := m.(ModuleOnTick); ok {
+		b.hooks.OnTick = append(b.hooks.OnTick, h)
 	}
 }
 

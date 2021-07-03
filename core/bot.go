@@ -166,13 +166,23 @@ func (b *Bot) ProcessMessage(msg events.MessageNewObject) {
 }
 
 func (b *Bot) Run() {
+    // Run hooks on tick
+
+    go func() {
+        for range time.Tick(time.Second) {
+            for _, h := range b.hooks.OnTick {
+                go h.OnTick(b)
+            }
+        }
+    }()
+
 	lp, err := longpoll.NewLongPoll(b.Session, b.SelfID)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	lp.MessageNew(func(_ context.Context, obj events.MessageNewObject) {
-		// log.Printf("%d: %s", obj.Message.PeerID, obj.Message.Text)
+		log.Printf("%d: %s", obj.Message.PeerID, obj.Message.Text)
 
 		b.ProcessMessage(obj)
 	})
