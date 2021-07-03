@@ -166,13 +166,13 @@ func (b *Bot) ProcessMessage(msg events.MessageNewObject) {
 }
 
 func (b *Bot) Run() {
-    go func() {
-        for range time.Tick(time.Second) {
-            for _, h := range b.hooks.OnTick {
-                go h.OnTick(b)
-            }
-        }
-    }()
+	go func() {
+		for range time.Tick(time.Second) {
+			for _, h := range b.hooks.OnTick {
+				go h.OnTick(b)
+			}
+		}
+	}()
 
 	lp, err := longpoll.NewLongPoll(b.Session, b.SelfID)
 	if err != nil {

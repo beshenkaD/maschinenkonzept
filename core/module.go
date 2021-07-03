@@ -69,8 +69,8 @@ type ModuleOnInviteBot interface {
 
 // Хук выполняется каждую секунду
 type ModuleOnTick interface {
-    Module
-    OnTick(*Bot)
+	Module
+	OnTick(*Bot)
 }
 
 type moduleHooks struct {
@@ -83,7 +83,7 @@ type moduleHooks struct {
 	OnInviteByLink []ModuleOnInviteByLink
 	OnChatCreate   []ModuleOnChatCreate
 	OnInviteBot    []ModuleOnInviteBot
-    OnTick         []ModuleOnTick
+	OnTick         []ModuleOnTick
 }
 
 // -------------------------------- //
