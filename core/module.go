@@ -40,31 +40,31 @@ type ModuleOnKickUser interface {
 // Хук для закрепления сообщения
 type ModuleOnPinMessage interface {
 	Module
-	OnPinMessage(*Bot, events.MessageNewObject) 
+	OnPinMessage(*Bot, events.MessageNewObject)
 }
 
 // Хук для открепления сообщения
 type ModuleOnUnpinMessage interface {
 	Module
-	OnUnpinMessage(*Bot, events.MessageNewObject) 
+	OnUnpinMessage(*Bot, events.MessageNewObject)
 }
 
 // Хук для вступления по ссылке
 type ModuleOnInviteByLink interface {
 	Module
-	OnInviteByLink(*Bot, events.MessageNewObject) 
+	OnInviteByLink(*Bot, events.MessageNewObject)
 }
 
 // Хук для создания чата
 type ModuleOnChatCreate interface {
 	Module
-	OnChatCreate(*Bot, events.MessageNewObject) 
+	OnChatCreate(*Bot, events.MessageNewObject)
 }
 
 // Хук для приглашения бота (этого)
 type ModuleOnInviteBot interface {
 	Module
-	OnInviteBot(*Bot, events.MessageNewObject) 
+	OnInviteBot(*Bot, events.MessageNewObject)
 }
 
 type moduleHooks struct {
@@ -75,8 +75,8 @@ type moduleHooks struct {
 	OnPinMessage   []ModuleOnPinMessage
 	OnUnpinMessage []ModuleOnUnpinMessage
 	OnInviteByLink []ModuleOnInviteByLink
-    OnChatCreate   []ModuleOnChatCreate
-    OnInviteBot    []ModuleOnInviteBot
+	OnChatCreate   []ModuleOnChatCreate
+	OnInviteBot    []ModuleOnInviteBot
 }
 
 // -------------------------------- //

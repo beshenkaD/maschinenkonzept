@@ -23,19 +23,19 @@ func (w *BaseModule) OnInviteUser(bot *core.Bot, msg events.MessageNewObject) {
 }
 
 func (w *BaseModule) OnKickUser(bot *core.Bot, msg events.MessageNewObject) {
-    apiutil.Send(bot.Session, "Пока-пока :(", msg.Message.PeerID)
+	apiutil.Send(bot.Session, "Пока-пока :(", msg.Message.PeerID)
 }
 
 func (w *BaseModule) OnPinMessage(bot *core.Bot, msg events.MessageNewObject) {
-    apiutil.Send(bot.Session, "нахуй ты это сделал?", msg.Message.PeerID)
+	apiutil.Send(bot.Session, "нахуй ты это сделал?", msg.Message.PeerID)
 }
 
 func (w *BaseModule) OnInviteBot(bot *core.Bot, msg events.MessageNewObject) {
-    apiutil.Send(bot.Session, "Спасибо что добавили меня", msg.Message.PeerID)
+	apiutil.Send(bot.Session, "Спасибо что добавили меня", msg.Message.PeerID)
 }
 
 func (w *BaseModule) OnUnpinMessage(bot *core.Bot, msg events.MessageNewObject) {
-    apiutil.Send(bot.Session, "молодец.", msg.Message.PeerID)
+	apiutil.Send(bot.Session, "молодец.", msg.Message.PeerID)
 }
 
 func (w *BaseModule) Commands() []core.Command {
@@ -53,22 +53,22 @@ type pingCommand struct{}
 func (c *pingCommand) Info() *core.CommandInfo {
 	return &core.CommandInfo{
 		Name: "Ping",
-        Desc: "Проверить работоспособность бота (или поиграть в пинг-понг) :)",
+		Desc: "Проверить работоспособность бота (или поиграть в пинг-понг) :)",
 	}
 }
 
-func (c *pingCommand) Run(msg events.MessageNewObject, argc int, argv []string, bot *core.Bot){
+func (c *pingCommand) Run(msg events.MessageNewObject, argc int, argv []string, bot *core.Bot) {
 	if argc == 0 {
 		apiutil.Send(bot.Session, "pong", msg.Message.PeerID)
 
-        return
+		return
 	}
 
-    if argv[0] == "ru" {
+	if argv[0] == "ru" {
 		apiutil.Send(bot.Session, "понг", msg.Message.PeerID)
 
-        return
-    }
+		return
+	}
 }
 
 func (c *pingCommand) Usage() *core.CommandUsage {
