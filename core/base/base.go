@@ -3,12 +3,12 @@
 package base
 
 import (
+	"fmt"
 	"github.com/SevereCloud/vksdk/v2/events"
 	"github.com/beshenkaD/maschinenkonzept/apiutil"
 	"github.com/beshenkaD/maschinenkonzept/core"
 	"runtime"
-    "fmt"
-    "time"
+	"time"
 )
 
 type BaseModule struct{}
@@ -32,7 +32,7 @@ func (w *BaseModule) OnKickUser(bot *core.Bot, msg events.MessageNewObject) {
 func (w *BaseModule) Commands() []core.Command {
 	return []core.Command{
 		&pingCommand{},
-        &statCommand{},
+		&statCommand{},
 	}
 }
 
@@ -75,19 +75,19 @@ func (c *statCommand) Run(msg events.MessageNewObject, argc int, argv []string, 
 ⚙ Сообщений обработано: %d
 ⚙ Потребление памяти (alloc): %v MiB
 `
-    var m runtime.MemStats
-    runtime.ReadMemStats(&m)
-    v := m.Alloc / 1024 / 1024
-    u := time.Since(bot.StartTime)
+	var m runtime.MemStats
+	runtime.ReadMemStats(&m)
+	v := m.Alloc / 1024 / 1024
+	u := time.Since(bot.StartTime)
 
-    s = fmt.Sprintf(s, bot.SelfName, u, bot.Processed, v)
+	s = fmt.Sprintf(s, bot.SelfName, u, bot.Processed, v)
 
-    apiutil.Send(bot.Session, s, msg.Message.PeerID)
+	apiutil.Send(bot.Session, s, msg.Message.PeerID)
 }
 
 func (c *statCommand) Usage() *core.CommandUsage {
 	return &core.CommandUsage{
-		Desc: "Выводит статистику бота",
+		Desc:   "Выводит статистику бота",
 		Params: []core.CommandUsageParam{},
 	}
 }
