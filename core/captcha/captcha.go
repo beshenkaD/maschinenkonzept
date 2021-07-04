@@ -103,11 +103,7 @@ func (w *CaptchaModule) OnTick(bot *core.Bot) {
 
 			w.timeoutLock.Unlock()
 
-			b := params.NewMessagesRemoveChatUserBuilder()
-			b.ChatID(timeout.chat)
-			b.UserID(ID)
-
-			_, err := bot.Session.MessagesRemoveChatUser(b.Params)
+			_, err := vkutil.RemoveUser(bot.Session, timeout.chat, ID)
 
 			if err != nil {
 				vkutil.SendMessage(bot.Session, err.Error(), timeout.chat+2000000000, true)
