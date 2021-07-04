@@ -52,8 +52,11 @@ func (w *CaptchaModule) OnInviteByLink(bot *core.Bot, msg events.MessageNewObjec
 
     fmt.Println(msg.Message.FromID)
 
-	user, err := vkutil.GetUser(bot.Session, ID)
+    b := params.NewUsersGetBuilder()
+    b.Lang(0)
+    b.UserIDs([]string{strconv.Itoa(ID)})
 
+    users, err := bot.Session.UsersGet(b.Params)
 	if err != nil {
 		vkutil.SendMessage(bot.Session, err.Error(), peerID, true)
 		return
@@ -61,7 +64,7 @@ func (w *CaptchaModule) OnInviteByLink(bot *core.Bot, msg events.MessageNewObjec
 
 	first, second, answer := generateCaptcha()
 
-	s := fmt.Sprintf("[id%d|%s], пожалуйста, решите пример: %d + %d", ID, user.FirstName, first, second)
+	s := fmt.Sprintf("[id%d|%s], пожалуйста, решите пример: %d + %d", ID, users[0].FirstName, first, second)
 	vkutil.SendMessage(bot.Session, s, msg.Message.PeerID, false)
 
 	timeout := userTimeout{
