@@ -50,13 +50,13 @@ func (w *CaptchaModule) OnInviteByLink(bot *core.Bot, msg events.MessageNewObjec
 	ID := msg.Message.FromID
 	peerID := msg.Message.PeerID
 
-    fmt.Println(msg.Message.FromID)
+	fmt.Println(msg.Message.FromID)
 
-    b := params.NewUsersGetBuilder()
-    b.Lang(0)
-    b.UserIDs([]string{strconv.Itoa(ID)})
+	b := params.NewUsersGetBuilder()
+	b.Lang(0)
+	b.UserIDs([]string{strconv.Itoa(ID)})
 
-    users, err := bot.Session.UsersGet(b.Params)
+	users, err := bot.Session.UsersGet(b.Params)
 	if err != nil {
 		vkutil.SendMessage(bot.Session, err.Error(), peerID, true)
 		return
