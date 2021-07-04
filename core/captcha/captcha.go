@@ -47,14 +47,10 @@ func (w *CaptchaModule) Commands() []core.Command {
 }
 
 func (w *CaptchaModule) OnInviteByLink(bot *core.Bot, msg events.MessageNewObject) {
-	ID := msg.Message.Action.MemberID
+	ID := msg.Message.FromID
 	peerID := msg.Message.PeerID
 
-	if ID < 0 {
-		return
-	}
-
-	first, second, answer := generateCaptcha()
+    fmt.Println(msg.Message.FromID)
 
 	user, err := vkutil.GetUser(bot.Session, ID)
 
@@ -62,6 +58,8 @@ func (w *CaptchaModule) OnInviteByLink(bot *core.Bot, msg events.MessageNewObjec
 		vkutil.SendMessage(bot.Session, err.Error(), peerID, true)
 		return
 	}
+
+	first, second, answer := generateCaptcha()
 
 	s := fmt.Sprintf("[id%d|%s], пожалуйста, решите пример: %d + %d", ID, user.FirstName, first, second)
 	vkutil.SendMessage(bot.Session, s, msg.Message.PeerID, false)
