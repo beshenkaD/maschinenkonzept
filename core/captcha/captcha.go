@@ -1,9 +1,9 @@
 package captcha
 
 import (
-	"container/heap"
+	// "container/heap"
 	"fmt"
-	"github.com/SevereCloud/vksdk/v2/api/params"
+	// "github.com/SevereCloud/vksdk/v2/api/params"
 	"github.com/SevereCloud/vksdk/v2/events"
 	"github.com/beshenkaD/maschinenkonzept/apiutil"
 	"github.com/beshenkaD/maschinenkonzept/core"
@@ -14,44 +14,23 @@ import (
 )
 
 type userTimeout struct {
-	ID      int
-	ChatID  int
-	Answer  int
-	Start   time.Time
-	Correct bool
+	chat   int
+	answer int
+	time   time.Time
 }
 
-type userTimeoutHeap []userTimeout
-
-func (h userTimeoutHeap) Len() int           { return len(h) }
-func (h userTimeoutHeap) Peek() *userTimeout { return &h[0] }
-func (h userTimeoutHeap) Less(i, j int) bool { return h[i].Start.Before(h[j].Start) }
-func (h userTimeoutHeap) Swap(i, j int)      { h[i], h[j] = h[j], h[i] }
-
-func (h *userTimeoutHeap) Push(x interface{}) {
-	*h = append(*h, x.(userTimeout))
-}
-
-func (h *userTimeoutHeap) Pop() interface{} {
-	old := *h
-	n := len(old)
-	item := old[n-1]
-	*h = old[0 : n-1]
-	return item
-}
+type userTimeouts map[int]userTimeout
 
 // Предлагает пройти капчу только что вступившему в беседу человеку
 type CaptchaModule struct {
-	timeouts    *userTimeoutHeap
+	timeouts    userTimeouts
 	timeoutLock sync.Mutex
 }
 
 func New() *CaptchaModule {
 	w := &CaptchaModule{
-		timeouts: &userTimeoutHeap{},
+		timeouts: make(userTimeouts),
 	}
-
-	heap.Init(w.timeouts)
 
 	return w
 }
@@ -77,73 +56,58 @@ func (w *CaptchaModule) OnInviteUser(bot *core.Bot, msg events.MessageNewObject)
 
 	first, second, answer := generateCaptcha()
 
-	println(first, second, answer, first+second)
-
-	s := fmt.Sprintf("Пожалуйста решите пример %d + %d", first, second)
+    name := apiutil.GetName(bot.Session, ID)
+	s := fmt.Sprintf("[id%d|%s], Пожалуйста решите пример %d + %d", ID, name, first, second)
 	apiutil.Send(bot.Session, s, msg.Message.PeerID)
 
 	timeout := userTimeout{
-		ID:     ID,
-		ChatID: msg.Message.PeerID - 2000000000,
-		Start:  time.Now(),
-		Answer: answer,
+		chat:   msg.Message.PeerID - 2000000000,
+		answer: answer,
+		time:   time.Now(),
 	}
 
-	w.timeouts.Push(timeout)
+	w.timeoutLock.Lock()
+
+	w.timeouts[ID] = timeout
+
+	w.timeoutLock.Unlock()
 }
 
 func (w *CaptchaModule) OnMessage(bot *core.Bot, msg events.MessageNewObject) {
-	if w.timeouts.Len() == 0 {
-		return
-	}
+	if timeout, ok := w.timeouts[msg.Message.FromID]; ok {
+		a, err := strconv.Atoi(msg.Message.Text)
 
-	last := w.timeouts.Peek()
+		if err == nil && timeout.answer == a {
+			w.timeoutLock.Lock()
 
-	w.timeoutLock.Lock()
-	if msg.Message.FromID == last.ID && msg.Message.PeerID == last.ChatID+2000000000 {
-		r, err := strconv.Atoi(msg.Message.Text)
-		if err != nil {
-			return
-		}
+			delete(w.timeouts, msg.Message.FromID)
 
-		if r == last.Answer {
-			w.timeouts.Pop()
+			w.timeoutLock.Unlock()
 		}
 	}
-	w.timeoutLock.Unlock()
 }
 
 func (w *CaptchaModule) OnTick(bot *core.Bot) {
-	if w.timeouts.Len() == 0 {
-		return
-	}
+	for ID, timeout := range w.timeouts {
+		if time.Since(timeout.time).Seconds() >= 30.0 {
+			w.timeoutLock.Lock()
 
-	last := w.timeouts.Peek()
+			delete(w.timeouts, ID)
 
-	w.timeoutLock.Lock()
+			w.timeoutLock.Unlock()
 
-	d := time.Since(last.Start)
-
-	if d.Seconds() >= 30.0 && !last.Correct && w.timeouts.Len() != 0 {
-		b := params.NewMessagesRemoveChatUserBuilder()
-		b.ChatID(last.ChatID)
-		b.MemberID(last.ID)
-
-		_, err := bot.Session.MessagesRemoveChatUser(b.Params)
-		if err != nil {
-			println(err.Error())
+			apiutil.Send(bot.Session, fmt.Sprintf("%d ты бот ёбаный", ID), timeout.chat+2000000000)
 		}
-
-		w.timeouts.Pop()
 	}
-
-	w.timeoutLock.Unlock()
 }
 
 func generateCaptcha() (int, int, int) {
 	rand.Seed(time.Now().UnixNano())
 
-	answer := rand.Intn(30)
+    min := 5
+    max := 30
+
+	answer := rand.Intn(max - min + 1) + min
 	first := rand.Intn(answer)
 	second := answer - first
 

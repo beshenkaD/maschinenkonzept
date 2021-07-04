@@ -8,6 +8,7 @@ import (
 	"github.com/beshenkaD/maschinenkonzept/apiutil"
 	"github.com/beshenkaD/maschinenkonzept/core"
 	"runtime"
+	"syscall"
 	"time"
 )
 
@@ -71,6 +72,7 @@ func (c *statCommand) Info() *core.CommandInfo {
 
 func (c *statCommand) Run(msg events.MessageNewObject, argc int, argv []string, bot *core.Bot) {
 	s := `⚙ Запущен как: %s
+⚙ OS: %s
 ⚙ Uptime: %s
 ⚙ Сообщений обработано: %d
 ⚙ Потребление памяти (alloc): %v MiB
@@ -80,7 +82,16 @@ func (c *statCommand) Run(msg events.MessageNewObject, argc int, argv []string, 
 	v := m.Alloc / 1024 / 1024
 	u := time.Since(bot.StartTime)
 
-	s = fmt.Sprintf(s, bot.SelfName, u, bot.Processed, v)
+	os := runtime.GOOS
+
+	s = fmt.Sprintf(s, bot.SelfName, os, u, bot.Processed, v)
+
+	var r syscall.Rusage
+	err := syscall.Getrusage(syscall.RUSAGE_SELF, &r)
+
+	if err == nil {
+		s += fmt.Sprintf("⚙ Потребление памяти (rusage): %v MiB", r.Maxrss/1024)
+	}
 
 	apiutil.Send(bot.Session, s, msg.Message.PeerID)
 }
