@@ -1,12 +1,11 @@
 package captcha
 
 import (
-	// "container/heap"
 	"fmt"
-	// "github.com/SevereCloud/vksdk/v2/api/params"
+	"github.com/SevereCloud/vksdk/v2/api/params"
 	"github.com/SevereCloud/vksdk/v2/events"
-	"github.com/beshenkaD/maschinenkonzept/apiutil"
 	"github.com/beshenkaD/maschinenkonzept/core"
+	"github.com/beshenkaD/maschinenkonzept/vkutil"
 	"math/rand"
 	"strconv"
 	"sync"
@@ -21,7 +20,7 @@ type userTimeout struct {
 
 type userTimeouts map[int]userTimeout
 
-// Предлагает пройти капчу только что вступившему в беседу человеку
+// Требует пройти капчу если юзер вступил по ссылке
 type CaptchaModule struct {
 	timeouts    userTimeouts
 	timeoutLock sync.Mutex
@@ -47,8 +46,9 @@ func (w *CaptchaModule) Commands() []core.Command {
 	return []core.Command{}
 }
 
-func (w *CaptchaModule) OnInviteUser(bot *core.Bot, msg events.MessageNewObject) {
+func (w *CaptchaModule) OnInviteByLink(bot *core.Bot, msg events.MessageNewObject) {
 	ID := msg.Message.Action.MemberID
+	peerID := msg.Message.PeerID
 
 	if ID < 0 {
 		return
@@ -56,9 +56,15 @@ func (w *CaptchaModule) OnInviteUser(bot *core.Bot, msg events.MessageNewObject)
 
 	first, second, answer := generateCaptcha()
 
-    name := apiutil.GetName(bot.Session, ID)
-	s := fmt.Sprintf("[id%d|%s], Пожалуйста решите пример %d + %d", ID, name, first, second)
-	apiutil.Send(bot.Session, s, msg.Message.PeerID)
+	user, err := vkutil.GetUser(bot.Session, ID)
+
+	if err != nil {
+		vkutil.SendMessage(bot.Session, err.Error(), peerID, true)
+		return
+	}
+
+	s := fmt.Sprintf("[id%d|%s], пожалуйста, решите пример: %d + %d", ID, user.FirstName, first, second)
+	vkutil.SendMessage(bot.Session, s, msg.Message.PeerID, false)
 
 	timeout := userTimeout{
 		chat:   msg.Message.PeerID - 2000000000,
@@ -96,7 +102,15 @@ func (w *CaptchaModule) OnTick(bot *core.Bot) {
 
 			w.timeoutLock.Unlock()
 
-			apiutil.Send(bot.Session, fmt.Sprintf("%d ты бот ёбаный", ID), timeout.chat+2000000000)
+			b := params.NewMessagesRemoveChatUserBuilder()
+			b.ChatID(timeout.chat)
+			b.UserID(ID)
+
+			_, err := bot.Session.MessagesRemoveChatUser(b.Params)
+
+			if err != nil {
+				vkutil.SendMessage(bot.Session, err.Error(), timeout.chat+2000000000, true)
+			}
 		}
 	}
 }
@@ -104,10 +118,10 @@ func (w *CaptchaModule) OnTick(bot *core.Bot) {
 func generateCaptcha() (int, int, int) {
 	rand.Seed(time.Now().UnixNano())
 
-    min := 5
-    max := 30
+	min := 5
+	max := 30
 
-	answer := rand.Intn(max - min + 1) + min
+	answer := rand.Intn(max-min+1) + min
 	first := rand.Intn(answer)
 	second := answer - first
 

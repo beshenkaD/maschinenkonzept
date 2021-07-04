@@ -6,7 +6,7 @@ import (
 	"github.com/SevereCloud/vksdk/v2/api"
 	"github.com/SevereCloud/vksdk/v2/events"
 	"github.com/SevereCloud/vksdk/v2/longpoll-bot"
-	"github.com/beshenkaD/maschinenkonzept/apiutil"
+	"github.com/beshenkaD/maschinenkonzept/vkutil"
 	"log"
 	"strings"
 	"time"
@@ -14,33 +14,43 @@ import (
 
 type Bot struct {
 	Session  *api.VK
+	lp       *longpoll.LongPoll
 	SelfName string
 	SelfID   int
 	Prefix   byte
 	Modules  []Module
 	commands map[string]Command
 	hooks    moduleHooks
+	working  bool
 
 	Processed uint
 	StartTime time.Time
 }
 
-func New(token string, prefix byte, modules []Module) *Bot {
+func New(token string, prefix byte, modules []Module) (*Bot, error) {
 	session := api.NewVK(token)
 	group, err := session.GroupsGetByID(nil)
 
 	if err != nil {
-		return nil
+		return nil, err
+	}
+
+	lp, err := longpoll.NewLongPoll(session, group[0].ID)
+
+	if err != nil {
+		return nil, err
 	}
 
 	b := &Bot{
 		Session:   session,
+		lp:        lp,
 		Prefix:    prefix,
 		SelfName:  group[0].Name,
 		SelfID:    group[0].ID,
 		commands:  make(map[string]Command),
 		Processed: 0,
 		StartTime: time.Now(),
+		working:   true,
 	}
 
 	for _, m := range modules {
@@ -48,7 +58,7 @@ func New(token string, prefix byte, modules []Module) *Bot {
 		b.RegisterModule(m)
 	}
 
-	return b
+	return b, nil
 }
 
 func processUsage(usage *CommandUsage, name string) string {
@@ -97,6 +107,7 @@ func in(s string, a []string) bool {
 func (b *Bot) ProcessMessage(msg events.MessageNewObject) {
 	b.Processed++
 
+	peerID := msg.Message.PeerID
 	text := msg.Message.Text
 
 	if len(text) > 1 && text[0] == b.Prefix {
@@ -107,12 +118,17 @@ func (b *Bot) ProcessMessage(msg events.MessageNewObject) {
 		if ok {
 			if len(args) > 1 {
 				if in(args[1], []string{"помощь", "хелп", "help", "usage"}) {
-					apiutil.Send(b.Session, processUsage(c.Usage(), c.Info().Name), msg.Message.PeerID)
+					_, err := vkutil.SendMessage(b.Session, processUsage(c.Usage(), c.Info().Name), peerID, true)
+					if err != nil {
+						log.Println(err.Error(), "peer_id: ", peerID)
+					}
 					return
 				}
 				if in(args[1], []string{"info", "инфо", "информация"}) {
-					apiutil.Send(b.Session, processInfo(c.Info()), msg.Message.PeerID)
-
+					_, err := vkutil.SendMessage(b.Session, processInfo(c.Info()), peerID, true)
+					if err != nil {
+						log.Println(err.Error(), "peer_id: ", peerID)
+					}
 					return
 				}
 			}
@@ -165,8 +181,13 @@ func (b *Bot) ProcessMessage(msg events.MessageNewObject) {
 	}
 }
 
+// Запускает бота. Если хочешь иметь возможность его отключить потом то запускай в горутине
 func (b *Bot) Run() {
 	go func() {
+		if !b.working {
+			return
+		}
+
 		for range time.Tick(time.Second) {
 			for _, h := range b.hooks.OnTick {
 				go h.OnTick(b)
@@ -174,19 +195,22 @@ func (b *Bot) Run() {
 		}
 	}()
 
-	lp, err := longpoll.NewLongPoll(b.Session, b.SelfID)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	lp.MessageNew(func(_ context.Context, obj events.MessageNewObject) {
+	b.lp.MessageNew(func(_ context.Context, obj events.MessageNewObject) {
 		log.Printf("%d: %s", obj.Message.PeerID, obj.Message.Text)
 
 		b.ProcessMessage(obj)
 	})
 
 	log.Println("Start Long Poll")
-	if err := lp.Run(); err != nil {
-		log.Fatal(err)
+
+	// Это довольно хуевый расклад, надо бы переделать на каналы/ещё как-нибудь
+	// Чтоб можно было ловить ошибки отсюда запуская в горутине. Иначе метод Stop() просто не будет ничего делать
+	if err := b.lp.Run(); err != nil {
+		log.Println(err.Error())
 	}
+}
+
+func (b *Bot) Stop() {
+	b.lp.Shutdown()
+	b.working = false
 }

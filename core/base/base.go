@@ -5,8 +5,8 @@ package base
 import (
 	"fmt"
 	"github.com/SevereCloud/vksdk/v2/events"
-	"github.com/beshenkaD/maschinenkonzept/apiutil"
 	"github.com/beshenkaD/maschinenkonzept/core"
+	"github.com/beshenkaD/maschinenkonzept/vkutil"
 	"runtime"
 	"syscall"
 	"time"
@@ -23,11 +23,11 @@ func (w *BaseModule) Name() string {
 }
 
 func (w *BaseModule) OnInviteUser(bot *core.Bot, msg events.MessageNewObject) {
-	apiutil.Send(bot.Session, "Привет! 👋", msg.Message.PeerID)
+	vkutil.SendMessage(bot.Session, "Привет! 👋", msg.Message.PeerID, true)
 }
 
 func (w *BaseModule) OnKickUser(bot *core.Bot, msg events.MessageNewObject) {
-	apiutil.Send(bot.Session, "Пока 👋", msg.Message.PeerID)
+	vkutil.SendMessage(bot.Session, "Пока 👋", msg.Message.PeerID, true)
 }
 
 func (w *BaseModule) Commands() []core.Command {
@@ -51,7 +51,7 @@ func (c *pingCommand) Info() *core.CommandInfo {
 }
 
 func (c *pingCommand) Run(msg events.MessageNewObject, argc int, argv []string, bot *core.Bot) {
-	apiutil.Send(bot.Session, "pong", msg.Message.PeerID)
+	vkutil.SendMessage(bot.Session, "pong", msg.Message.PeerID, true)
 }
 
 func (c *pingCommand) Usage() *core.CommandUsage {
@@ -79,9 +79,9 @@ func (c *statCommand) Run(msg events.MessageNewObject, argc int, argv []string, 
 `
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
+
 	v := m.Alloc / 1024 / 1024
 	u := time.Since(bot.StartTime)
-
 	os := runtime.GOOS
 
 	s = fmt.Sprintf(s, bot.SelfName, os, u, bot.Processed, v)
@@ -93,7 +93,7 @@ func (c *statCommand) Run(msg events.MessageNewObject, argc int, argv []string, 
 		s += fmt.Sprintf("⚙ Потребление памяти (rusage): %v MiB", r.Maxrss/1024)
 	}
 
-	apiutil.Send(bot.Session, s, msg.Message.PeerID)
+	vkutil.SendMessage(bot.Session, s, msg.Message.PeerID, true)
 }
 
 func (c *statCommand) Usage() *core.CommandUsage {
