@@ -22,14 +22,6 @@ func (w *BaseModule) Name() string {
 	return "Основа"
 }
 
-func (w *BaseModule) OnInviteUser(bot *core.Bot, msg events.MessageNewObject) {
-	vkutil.SendMessage(bot.Session, "Привет! 👋", msg.Message.PeerID, true)
-}
-
-func (w *BaseModule) OnKickUser(bot *core.Bot, msg events.MessageNewObject) {
-	vkutil.SendMessage(bot.Session, "Пока 👋", msg.Message.PeerID, true)
-}
-
 func (w *BaseModule) Commands() []core.Command {
 	return []core.Command{
 		&pingCommand{},
@@ -39,6 +31,14 @@ func (w *BaseModule) Commands() []core.Command {
 
 func (w *BaseModule) Description() string {
 	return "Базовый модуль для проверки работоспособности бота"
+}
+
+func (w *BaseModule) OnInviteUser(bot *core.Bot, msg events.MessageNewObject) {
+	vkutil.SendMessage(bot.Session, "Привет! 👋", msg.Message.PeerID, true)
+}
+
+func (w *BaseModule) OnKickUser(bot *core.Bot, msg events.MessageNewObject) {
+	vkutil.SendMessage(bot.Session, "Пока 👋", msg.Message.PeerID, true)
 }
 
 type pingCommand struct{}
