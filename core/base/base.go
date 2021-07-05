@@ -4,11 +4,12 @@ package base
 
 import (
 	"fmt"
+	"runtime"
+	"time"
+
 	"github.com/SevereCloud/vksdk/v2/events"
 	"github.com/beshenkaD/maschinenkonzept/core"
 	"github.com/beshenkaD/maschinenkonzept/vkutil"
-	"runtime"
-	"time"
 )
 
 type BaseModule struct{}
@@ -49,7 +50,7 @@ func (c *pingCommand) Info() *core.CommandInfo {
 	}
 }
 
-func (c *pingCommand) Run(msg events.MessageNewObject, argc int, argv []string, bot *core.Bot) {
+func (c *pingCommand) Run(msg events.MessageNewObject, args []string, bot *core.Bot) {
 	vkutil.SendMessage(bot.Session, "pong", msg.Message.PeerID, true)
 }
 
@@ -69,7 +70,7 @@ func (c *statCommand) Info() *core.CommandInfo {
 	}
 }
 
-func (c *statCommand) Run(msg events.MessageNewObject, argc int, argv []string, bot *core.Bot) {
+func (c *statCommand) Run(msg events.MessageNewObject, args []string, bot *core.Bot) {
 	s := `⚙ Запущен как: %s
 ⚙ OS: %s
 ⚙ Uptime: %s

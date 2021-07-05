@@ -1,8 +1,9 @@
 package core
 
 import (
-	"github.com/SevereCloud/vksdk/v2/events"
 	"strings"
+
+	"github.com/SevereCloud/vksdk/v2/events"
 )
 
 // Модуль отслеживает все входящие запросы в зависимости от того какие интерфейсы он реализует
@@ -110,7 +111,7 @@ type CommandInfo struct {
 // TODO: Определиться нужно ли возвращать error
 // Команда это любая команда адресованная боту
 type Command interface {
-	Run(events.MessageNewObject, int, []string, *Bot)
+	Run(events.MessageNewObject, []string, *Bot)
 	Usage() *CommandUsage
 	Info() *CommandInfo
 }
@@ -163,6 +164,6 @@ func (b *Bot) RegisterModule(m Module) {
 }
 
 func (b *Bot) addCommand(c Command, m Module) {
-	name := string(strings.ToLower(c.Info().Name))
+	name := strings.ToLower(c.Info().Name)
 	b.commands[name] = c
 }

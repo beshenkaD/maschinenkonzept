@@ -3,13 +3,14 @@ package core
 import (
 	"context"
 	"fmt"
+	"log"
+	"strings"
+	"time"
+
 	"github.com/SevereCloud/vksdk/v2/api"
 	"github.com/SevereCloud/vksdk/v2/events"
 	"github.com/SevereCloud/vksdk/v2/longpoll-bot"
 	"github.com/beshenkaD/maschinenkonzept/vkutil"
-	"log"
-	"strings"
-	"time"
 )
 
 type Bot struct {
@@ -21,7 +22,9 @@ type Bot struct {
 	Modules  []Module
 	commands map[string]Command
 	hooks    moduleHooks
-	working  bool
+
+	ticker *time.Ticker
+	done   chan struct{}
 
 	Processed uint
 	StartTime time.Time
@@ -30,18 +33,16 @@ type Bot struct {
 func New(token string, prefix byte, modules []Module) (*Bot, error) {
 	session := api.NewVK(token)
 	group, err := session.GroupsGetByID(nil)
-
 	if err != nil {
 		return nil, err
 	}
 
 	lp, err := longpoll.NewLongPoll(session, group[0].ID)
-
 	if err != nil {
 		return nil, err
 	}
 
-	b := &Bot{
+	b := Bot{
 		Session:   session,
 		lp:        lp,
 		Prefix:    prefix,
@@ -50,15 +51,14 @@ func New(token string, prefix byte, modules []Module) (*Bot, error) {
 		commands:  make(map[string]Command),
 		Processed: 0,
 		StartTime: time.Now(),
-		working:   true,
+		Modules:   modules,
 	}
 
-	for _, m := range modules {
-		b.Modules = append(b.Modules, m)
+	for _, m := range b.Modules {
 		b.RegisterModule(m)
 	}
 
-	return b, nil
+	return &b, nil
 }
 
 func processUsage(usage *CommandUsage, name string) string {
@@ -94,16 +94,6 @@ func processInfo(info *CommandInfo) string {
 	return fmt.Sprintf(s, info.Name, info.Desc)
 }
 
-func in(s string, a []string) bool {
-	for _, e := range a {
-		if e == s {
-			return true
-		}
-	}
-
-	return false
-}
-
 func (b *Bot) ProcessMessage(msg events.MessageNewObject) {
 	b.Processed++
 
@@ -117,14 +107,14 @@ func (b *Bot) ProcessMessage(msg events.MessageNewObject) {
 		c, ok := b.commands[key]
 		if ok {
 			if len(args) > 1 {
-				if in(args[1], []string{"помощь", "хелп", "help", "usage"}) {
+				if in(args[1], "помощь", "хелп", "help", "usage") {
 					_, err := vkutil.SendMessage(b.Session, processUsage(c.Usage(), c.Info().Name), peerID, true)
 					if err != nil {
 						log.Println(err.Error(), "peer_id: ", peerID)
 					}
 					return
 				}
-				if in(args[1], []string{"info", "инфо", "информация"}) {
+				if in(args[1], "info", "инфо", "информация") {
 					_, err := vkutil.SendMessage(b.Session, processInfo(c.Info()), peerID, true)
 					if err != nil {
 						log.Println(err.Error(), "peer_id: ", peerID)
@@ -133,18 +123,16 @@ func (b *Bot) ProcessMessage(msg events.MessageNewObject) {
 				}
 			}
 
-			go c.Run(msg, len(args[1:]), args[1:], b)
+			go c.Run(msg, args[1:], b)
 
 			for _, h := range b.hooks.OnCommand {
 				go h.OnCommand(b, msg)
 			}
 		}
 	} else {
-		action := msg.Message.Action.Type
-
-		switch action {
+		switch msg.Message.Action.Type {
 		case "chat_invite_user":
-			if msg.Message.Action.MemberID == (b.SelfID * -1) {
+			if msg.Message.Action.MemberID == -b.SelfID {
 				for _, h := range b.hooks.OnInviteBot {
 					go h.OnInviteBot(b, msg)
 				}
@@ -181,14 +169,33 @@ func (b *Bot) ProcessMessage(msg events.MessageNewObject) {
 	}
 }
 
+func (b *Bot) IsRunning() bool {
+	if b.done != nil {
+		select {
+		case <-b.done:
+		default:
+			return true
+		}
+	}
+	return false
+}
+
 // Запускает бота. Если хочешь иметь возможность его отключить потом то запускай в горутине
 func (b *Bot) Run() {
-	go func() {
-		if !b.working {
-			return
-		}
+	if b.IsRunning() {
+		return
+	}
+	b.done = make(chan struct{})
 
-		for range time.Tick(time.Second) {
+	go func() {
+		b.ticker = time.NewTicker(time.Second)
+		for {
+			select {
+			case <-b.done:
+				b.ticker.Stop()
+				return
+			case <-b.ticker.C:
+			}
 			for _, h := range b.hooks.OnTick {
 				go h.OnTick(b)
 			}
@@ -211,6 +218,9 @@ func (b *Bot) Run() {
 }
 
 func (b *Bot) Stop() {
+	if !b.IsRunning() {
+		return
+	}
 	b.lp.Shutdown()
-	b.working = false
+	close(b.done)
 }
