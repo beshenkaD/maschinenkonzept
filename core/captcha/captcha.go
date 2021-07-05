@@ -113,8 +113,6 @@ func (w *CaptchaModule) OnTick(bot *core.Bot) {
 }
 
 func generateCaptcha() (int, int, int) {
-	rand.Seed(time.Now().UnixNano())
-
 	min := 5
 	max := 30
 

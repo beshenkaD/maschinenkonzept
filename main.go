@@ -5,6 +5,8 @@ import (
 	"github.com/beshenkaD/maschinenkonzept/core/base"
 	"github.com/beshenkaD/maschinenkonzept/core/captcha"
 	"log"
+	"math/rand"
+	"time"
 )
 
 const (
@@ -12,6 +14,8 @@ const (
 )
 
 func main() {
+	rand.Seed(time.Now().UnixNano())
+
 	modules := make([]core.Module, 0, 2)
 	modules = append(modules, base.New())
 	modules = append(modules, captcha.New())
