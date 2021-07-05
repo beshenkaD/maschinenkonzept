@@ -180,7 +180,6 @@ func (b *Bot) IsRunning() bool {
 	return false
 }
 
-// Запускает бота. Если хочешь иметь возможность его отключить потом то запускай в горутине
 func (b *Bot) Run() {
 	if b.IsRunning() {
 		return
@@ -203,15 +202,13 @@ func (b *Bot) Run() {
 	}()
 
 	b.lp.MessageNew(func(_ context.Context, obj events.MessageNewObject) {
-		log.Printf("%d: %s", obj.Message.PeerID, obj.Message.Text)
+		// log.Printf("%d: %s", obj.Message.PeerID, obj.Message.Text)
 
 		b.ProcessMessage(obj)
 	})
 
 	log.Println("Start Long Poll")
 
-	// Это довольно хуевый расклад, надо бы переделать на каналы/ещё как-нибудь
-	// Чтоб можно было ловить ошибки отсюда запуская в горутине. Иначе метод Stop() просто не будет ничего делать
 	if err := b.lp.Run(); err != nil {
 		log.Println(err.Error())
 	}

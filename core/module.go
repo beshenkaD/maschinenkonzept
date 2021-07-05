@@ -108,7 +108,6 @@ type CommandInfo struct {
 	Desc string
 }
 
-// TODO: Определиться нужно ли возвращать error
 // Команда это любая команда адресованная боту
 type Command interface {
 	Run(events.MessageNewObject, []string, *Bot)
