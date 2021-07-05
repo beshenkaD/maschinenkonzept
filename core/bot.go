@@ -33,11 +33,13 @@ type Bot struct {
 func New(token string, prefix byte, modules []Module) (*Bot, error) {
 	session := api.NewVK(token)
 	group, err := session.GroupsGetByID(nil)
+
 	if err != nil {
 		return nil, err
 	}
 
 	lp, err := longpoll.NewLongPoll(session, group[0].ID)
+
 	if err != nil {
 		return nil, err
 	}
@@ -112,6 +114,7 @@ func (b *Bot) ProcessMessage(msg events.MessageNewObject) {
 					if err != nil {
 						log.Println(err.Error(), "peer_id: ", peerID)
 					}
+
 					return
 				}
 				if in(args[1], "info", "инфо", "информация") {
@@ -119,6 +122,7 @@ func (b *Bot) ProcessMessage(msg events.MessageNewObject) {
 					if err != nil {
 						log.Println(err.Error(), "peer_id: ", peerID)
 					}
+
 					return
 				}
 			}

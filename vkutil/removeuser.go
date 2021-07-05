@@ -8,7 +8,7 @@ import (
 func RemoveUser(session *api.VK, chatID, userID int) (int, error) {
 	b := params.NewMessagesRemoveChatUserBuilder()
 	b.ChatID(chatID)
-	b.UserID(userID)
+	b.MemberID(userID)
 
 	r, err := session.MessagesRemoveChatUser(b.Params)
 
