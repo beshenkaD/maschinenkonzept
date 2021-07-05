@@ -8,7 +8,6 @@ import (
 	"github.com/beshenkaD/maschinenkonzept/core"
 	"github.com/beshenkaD/maschinenkonzept/vkutil"
 	"runtime"
-	"syscall"
 	"time"
 )
 
@@ -85,13 +84,6 @@ func (c *statCommand) Run(msg events.MessageNewObject, argc int, argv []string, 
 	os := runtime.GOOS
 
 	s = fmt.Sprintf(s, bot.SelfName, os, u, bot.Processed, v)
-
-	var r syscall.Rusage
-	err := syscall.Getrusage(syscall.RUSAGE_SELF, &r)
-
-	if err == nil {
-		s += fmt.Sprintf("⚙ Потребление памяти (rusage): %v MiB", r.Maxrss/1024)
-	}
 
 	vkutil.SendMessage(bot.Session, s, msg.Message.PeerID, true)
 }
