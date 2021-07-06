@@ -1,12 +1,13 @@
 package main
 
 import (
-	"github.com/beshenkaD/maschinenkonzept/core"
-	"github.com/beshenkaD/maschinenkonzept/core/base"
-	"github.com/beshenkaD/maschinenkonzept/core/captcha"
 	"log"
 	"math/rand"
 	"time"
+
+	"github.com/beshenkaD/maschinenkonzept/core"
+	"github.com/beshenkaD/maschinenkonzept/core/base"
+	"github.com/beshenkaD/maschinenkonzept/core/captcha"
 )
 
 const (
