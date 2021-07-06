@@ -34,10 +34,10 @@ func (c *quoteCommand) Info() *core.CommandInfo {
 
 func (c *quoteCommand) Usage() *core.CommandUsage {
 	return &core.CommandUsage{
-		Desc:   "Генерирует цитату из сообщения пользователя",
+		Desc: "Генерирует цитату из сообщения пользователя",
 		Params: []core.CommandUsageParam{
-            {Name: "dark", Desc: "Меняет цвет фона цитаты на чёрный", Optional: true},
-        },
+			{Name: "dark", Desc: "Меняет цвет фона цитаты на чёрный", Optional: true},
+		},
 	}
 }
 
