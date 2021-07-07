@@ -113,6 +113,8 @@ type Command interface {
 	Run(events.MessageNewObject, []string, *Bot)
 	Usage() *CommandUsage
 	Info() *CommandInfo
+	ForPm() bool
+	ForConf() bool
 }
 
 func (b *Bot) RegisterModule(m Module) {
