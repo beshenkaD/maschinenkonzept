@@ -61,14 +61,6 @@ func (c *pingCommand) Usage() *core.CommandUsage {
 	}
 }
 
-func (c *pingCommand) ForConf() bool {
-    return true
-}
-
-func (c *pingCommand) ForPm() bool {
-    return true
-}
-
 type statCommand struct{}
 
 func (c *statCommand) Info() *core.CommandInfo {
@@ -102,12 +94,4 @@ func (c *statCommand) Usage() *core.CommandUsage {
 		Desc:   "Выводит статистику бота",
 		Params: []core.CommandUsageParam{},
 	}
-}
-
-func (c *statCommand) ForPm() bool {
-    return true
-}
-
-func (c *statCommand) ForConf() bool {
-    return true
 }

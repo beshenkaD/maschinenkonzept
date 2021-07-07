@@ -101,11 +101,6 @@ func (b *Bot) ProcessMessage(msg events.MessageNewObject) {
 
 	peerID := msg.Message.PeerID
 	text := msg.Message.Text
-	pm := false
-
-	if peerID < 2000000000 {
-		pm = true
-	}
 
 	if len(text) > 1 && text[0] == b.Prefix {
 		args := strings.Split(text[1:], " ")
@@ -124,7 +119,6 @@ func (b *Bot) ProcessMessage(msg events.MessageNewObject) {
 				}
 				if in(args[1], "info", "инфо", "информация") {
 					_, err := vkutil.SendMessage(b.Session, processInfo(c.Info()), peerID, true)
-
 					if err != nil {
 						log.Println(err.Error(), "peer_id: ", peerID)
 					}
@@ -133,19 +127,7 @@ func (b *Bot) ProcessMessage(msg events.MessageNewObject) {
 				}
 			}
 
-			if pm {
-				if c.ForPm() {
-					go c.Run(msg, args[1:], b)
-				} else {
-					vkutil.SendMessage(b.Session, "Эта команда не работает в лс", peerID, true)
-				}
-			} else {
-				if c.ForConf() {
-					go c.Run(msg, args[1:], b)
-				} else {
-					vkutil.SendMessage(b.Session, "Эта команда не работает в конфах", peerID, true)
-				}
-			}
+			go c.Run(msg, args[1:], b)
 
 			for _, h := range b.hooks.OnCommand {
 				go h.OnCommand(b, msg)
