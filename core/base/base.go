@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/SevereCloud/vksdk/v2/api"
 	"github.com/SevereCloud/vksdk/v2/events"
 	"github.com/beshenkaD/maschinenkonzept/core"
 	"github.com/beshenkaD/maschinenkonzept/vkutil"
