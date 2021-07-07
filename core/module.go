@@ -104,8 +104,10 @@ type CommandUsage struct {
 
 // Информация о команде
 type CommandInfo struct {
-	Name string
-	Desc string
+	Name    string
+	Desc    string
+	ForPm   bool
+	ForConf bool
 }
 
 // Команда это любая команда адресованная боту

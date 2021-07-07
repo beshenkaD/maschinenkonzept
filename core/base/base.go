@@ -45,8 +45,10 @@ type pingCommand struct{}
 
 func (c *pingCommand) Info() *core.CommandInfo {
 	return &core.CommandInfo{
-		Name: "Ping",
-		Desc: "Проверяет работоспособность бота и позволяет поиграть с ним в пинг-понг⚾",
+		Name:    "Ping",
+		Desc:    "Проверяет работоспособность бота и позволяет поиграть с ним в пинг-понг⚾",
+		ForPm:   true,
+		ForConf: true,
 	}
 }
 
@@ -65,8 +67,10 @@ type statCommand struct{}
 
 func (c *statCommand) Info() *core.CommandInfo {
 	return &core.CommandInfo{
-		Name: "Stat",
-		Desc: "Выводит статистику бота 🚀",
+		Name:    "Stat",
+		Desc:    "Выводит статистику бота 🚀",
+		ForConf: true,
+		ForPm:   true,
 	}
 }
 
