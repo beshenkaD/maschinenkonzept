@@ -93,13 +93,13 @@ func processUsage(usage *CommandUsage, name string) string {
 func processInfo(info *CommandInfo) string {
 	s := "⚙ %s -- %s\n"
 
-    if info.ForConf && !info.ForPm {
-        s += "Только для бесед 🍹"
-    }
+	if info.ForConf && !info.ForPm {
+		s += "Только для бесед 🍹"
+	}
 
-    if info.ForPm && !info.ForConf {
-        s += "Только для личных сообщений бота 🔖"
-    }
+	if info.ForPm && !info.ForConf {
+		s += "Только для личных сообщений бота 🔖"
+	}
 
 	return fmt.Sprintf(s, info.Name, info.Desc)
 }
@@ -109,11 +109,11 @@ func (b *Bot) ProcessMessage(msg events.MessageNewObject) {
 
 	peerID := msg.Message.PeerID
 	text := msg.Message.Text
-    pm := false
+	pm := false
 
-    if peerID < 2000000000 {
-        pm = true
-    }
+	if peerID < 2000000000 {
+		pm = true
+	}
 
 	if len(text) > 1 && text[0] == b.Prefix {
 		args := strings.Split(text[1:], " ")
@@ -140,19 +140,19 @@ func (b *Bot) ProcessMessage(msg events.MessageNewObject) {
 				}
 			}
 
-            if pm {
-                if c.Info().ForPm {
-			        go c.Run(msg, args[1:], b)
-                } else {
+			if pm {
+				if c.Info().ForPm {
+					go c.Run(msg, args[1:], b)
+				} else {
 					vkutil.SendMessage(b.Session, "Эта команда не работает в лс", peerID, true)
-                }
-            } else {
-                if c.Info().ForConf {
-			        go c.Run(msg, args[1:], b)
-                } else {
+				}
+			} else {
+				if c.Info().ForConf {
+					go c.Run(msg, args[1:], b)
+				} else {
 					vkutil.SendMessage(b.Session, "Эта команда не работает в беседах", peerID, true)
-                }
-            }
+				}
+			}
 
 			for _, h := range b.hooks.OnCommand {
 				go h.OnCommand(b, msg)
