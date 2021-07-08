@@ -11,14 +11,18 @@ import (
 	"github.com/beshenkaD/maschinenkonzept/core/captcha"
 )
 
-func main() {
-	rand.Seed(time.Now().UnixNano())
-
+func loader(c *core.Conversation) []core.Module {
 	modules := make([]core.Module, 0, 2)
 	modules = append(modules, base.New())
 	modules = append(modules, captcha.New())
 
-	bot, err := core.New(os.Getenv("VK_TOKEN"), '/', modules)
+	return modules
+}
+
+func main() {
+	rand.Seed(time.Now().UnixNano())
+
+	bot, err := core.New(os.Getenv("VK_TOKEN"), '/', loader)
 
 	if err != nil {
 		log.Fatal(err)

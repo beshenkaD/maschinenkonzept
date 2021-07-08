@@ -1,8 +1,6 @@
 package core
 
 import (
-	"strings"
-
 	"github.com/SevereCloud/vksdk/v2/events"
 )
 
@@ -117,54 +115,44 @@ type Command interface {
 	Info() *CommandInfo
 }
 
-func (b *Bot) RegisterModule(m Module) {
-	cmds := m.Commands()
-	for _, c := range cmds {
-		b.addCommand(c, m)
-	}
-
+func (c *Conversation) RegisterModule(m Module) {
 	if h, ok := m.(ModuleOnCommand); ok {
-		b.hooks.OnCommand = append(b.hooks.OnCommand, h)
+		c.hooks.OnCommand = append(c.hooks.OnCommand, h)
 	}
 
 	if h, ok := m.(ModuleOnMessage); ok {
-		b.hooks.OnMessage = append(b.hooks.OnMessage, h)
+		c.hooks.OnMessage = append(c.hooks.OnMessage, h)
 	}
 
 	if h, ok := m.(ModuleOnInviteUser); ok {
-		b.hooks.OnInviteUser = append(b.hooks.OnInviteUser, h)
+		c.hooks.OnInviteUser = append(c.hooks.OnInviteUser, h)
 	}
 
 	if h, ok := m.(ModuleOnKickUser); ok {
-		b.hooks.OnKickUser = append(b.hooks.OnKickUser, h)
+		c.hooks.OnKickUser = append(c.hooks.OnKickUser, h)
 	}
 
 	if h, ok := m.(ModuleOnPinMessage); ok {
-		b.hooks.OnPinMessage = append(b.hooks.OnPinMessage, h)
+		c.hooks.OnPinMessage = append(c.hooks.OnPinMessage, h)
 	}
 
 	if h, ok := m.(ModuleOnUnpinMessage); ok {
-		b.hooks.OnUnpinMessage = append(b.hooks.OnUnpinMessage, h)
+		c.hooks.OnUnpinMessage = append(c.hooks.OnUnpinMessage, h)
 	}
 
 	if h, ok := m.(ModuleOnInviteByLink); ok {
-		b.hooks.OnInviteByLink = append(b.hooks.OnInviteByLink, h)
+		c.hooks.OnInviteByLink = append(c.hooks.OnInviteByLink, h)
 	}
 
 	if h, ok := m.(ModuleOnChatCreate); ok {
-		b.hooks.OnChatCreate = append(b.hooks.OnChatCreate, h)
+		c.hooks.OnChatCreate = append(c.hooks.OnChatCreate, h)
 	}
 
 	if h, ok := m.(ModuleOnInviteBot); ok {
-		b.hooks.OnInviteBot = append(b.hooks.OnInviteBot, h)
+		c.hooks.OnInviteBot = append(c.hooks.OnInviteBot, h)
 	}
 
 	if h, ok := m.(ModuleOnTick); ok {
-		b.hooks.OnTick = append(b.hooks.OnTick, h)
+		c.hooks.OnTick = append(c.hooks.OnTick, h)
 	}
-}
-
-func (b *Bot) addCommand(c Command, m Module) {
-	name := strings.ToLower(c.Info().Name)
-	b.commands[name] = c
 }

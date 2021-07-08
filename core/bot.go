@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/SevereCloud/vksdk/v2/api"
@@ -14,14 +15,13 @@ import (
 )
 
 type Bot struct {
-	Session  *api.VK
-	lp       *longpoll.LongPoll
-	SelfName string
-	SelfID   int
-	Prefix   byte
-	Modules  []Module
-	commands map[string]Command
-	hooks    moduleHooks
+	Session           *api.VK
+	lp                *longpoll.LongPoll
+	SelfName          string
+	SelfID            int
+	ConversationsLock sync.Mutex
+	Conversations     map[int]*Conversation
+	loader            func(*Conversation) []Module
 
 	ticker *time.Ticker
 	done   chan struct{}
@@ -30,7 +30,7 @@ type Bot struct {
 	StartTime time.Time
 }
 
-func New(token string, prefix byte, modules []Module) (*Bot, error) {
+func New(token string, prefix byte, loader func(*Conversation) []Module) (*Bot, error) {
 	session := api.NewVK(token)
 	group, err := session.GroupsGetByID(nil)
 
@@ -45,22 +45,36 @@ func New(token string, prefix byte, modules []Module) (*Bot, error) {
 	}
 
 	b := Bot{
-		Session:   session,
-		lp:        lp,
-		Prefix:    prefix,
-		SelfName:  group[0].Name,
-		SelfID:    group[0].ID,
-		commands:  make(map[string]Command),
-		Processed: 0,
-		StartTime: time.Now(),
-		Modules:   modules,
-	}
-
-	for _, m := range b.Modules {
-		b.RegisterModule(m)
+		Session:       session,
+		lp:            lp,
+		SelfName:      group[0].Name,
+		SelfID:        group[0].ID,
+		Conversations: make(map[int]*Conversation),
+		loader:        loader,
+		Processed:     0,
+		StartTime:     time.Now(),
 	}
 
 	return &b, nil
+}
+
+func (b *Bot) AddToConversation(chatID int) {
+	conversation := NewConversation(b, chatID)
+
+	b.ConversationsLock.Lock()
+	b.Conversations[chatID] = conversation
+	b.ConversationsLock.Unlock()
+
+	conversation.Modules = b.loader(conversation)
+
+	for _, v := range conversation.Modules {
+		conversation.RegisterModule(v)
+		cmds := v.Commands()
+
+		for _, command := range cmds {
+			conversation.addCommand(command, v)
+		}
+	}
 }
 
 func processUsage(usage *CommandUsage, name string) string {
@@ -104,22 +118,17 @@ func processInfo(info *CommandInfo) string {
 	return fmt.Sprintf(s, info.Name, info.Desc)
 }
 
-func (b *Bot) ProcessMessage(msg events.MessageNewObject) {
+func (b *Bot) ProcessMessage(msg events.MessageNewObject, info *Conversation, pm bool) {
 	b.Processed++
 
 	peerID := msg.Message.PeerID
 	text := msg.Message.Text
-	pm := false
 
-	if peerID < 2000000000 {
-		pm = true
-	}
-
-	if len(text) > 1 && text[0] == b.Prefix {
+	if len(text) > 1 && text[0] == info.Prefix {
 		args := strings.Split(text[1:], " ")
 		key := args[0]
 
-		c, ok := b.commands[key]
+		c, ok := info.commands[key]
 		if ok {
 			if len(args) > 1 {
 				if in(args[1], "помощь", "хелп", "help", "usage") {
@@ -140,46 +149,10 @@ func (b *Bot) ProcessMessage(msg events.MessageNewObject) {
 				go c.Run(msg, args[1:], b)
 			}
 
-			for _, h := range b.hooks.OnCommand {
-				go h.OnCommand(b, msg)
-			}
 		}
-	} else {
-		switch msg.Message.Action.Type {
-		case "chat_invite_user":
-			if msg.Message.Action.MemberID == -b.SelfID {
-				for _, h := range b.hooks.OnInviteBot {
-					go h.OnInviteBot(b, msg)
-				}
-			} else {
-				for _, h := range b.hooks.OnInviteUser {
-					go h.OnInviteUser(b, msg)
-				}
-			}
-		case "chat_kick_user":
-			for _, h := range b.hooks.OnKickUser {
-				go h.OnKickUser(b, msg)
-			}
-		case "chat_pin_message":
-			for _, h := range b.hooks.OnPinMessage {
-				go h.OnPinMessage(b, msg)
-			}
-		case "chat_unpin_message":
-			for _, h := range b.hooks.OnUnpinMessage {
-				go h.OnUnpinMessage(b, msg)
-			}
-		case "chat_invite_user_by_link":
-			for _, h := range b.hooks.OnInviteByLink {
-				go h.OnInviteByLink(b, msg)
-			}
-		case "chat_create":
-			for _, h := range b.hooks.OnChatCreate {
-				go h.OnChatCreate(b, msg)
-			}
-		default:
-			for _, h := range b.hooks.OnMessage {
-				go h.OnMessage(b, msg)
-			}
+	} else if !pm {
+		for _, h := range info.hooks.OnCommand {
+			go h.OnCommand(b, msg)
 		}
 	}
 }
@@ -201,25 +174,33 @@ func (b *Bot) Run() {
 	}
 	b.done = make(chan struct{})
 
-	go func() {
-		b.ticker = time.NewTicker(time.Second)
-		for {
-			select {
-			case <-b.done:
-				b.ticker.Stop()
-				return
-			case <-b.ticker.C:
-			}
-			for _, h := range b.hooks.OnTick {
-				go h.OnTick(b)
-			}
-		}
-	}()
+	// go func() {
+	// 	b.ticker = time.NewTicker(time.Second)
+	// 	for {
+	// 		select {
+	// 		case <-b.done:
+	// 			b.ticker.Stop()
+	// 			return
+	// 		case <-b.ticker.C:
+	// 		}
+	// 		for _, h := range b.hooks.OnTick {
+	// 			go h.OnTick(b)
+	// 		}
+	// 	}
+	// }()
 
 	b.lp.MessageNew(func(_ context.Context, obj events.MessageNewObject) {
 		// log.Printf("%d: %s", obj.Message.PeerID, obj.Message.Text)
+		pm := obj.Message.PeerID < 2000000000
 
-		b.ProcessMessage(obj)
+		if conversation, ok := b.Conversations[obj.Message.PeerID]; ok {
+			b.ProcessMessage(obj, conversation, pm)
+		} else {
+			if !pm {
+				b.AddToConversation(obj.Message.PeerID)
+			}
+			b.ProcessMessage(obj, nil, pm)
+		}
 	})
 
 	log.Println("Start Long Poll")
