@@ -123,35 +123,21 @@ func (b *Bot) ProcessMessage(msg events.MessageNewObject) {
 		if ok {
 			if len(args) > 1 {
 				if in(args[1], "помощь", "хелп", "help", "usage") {
-					_, err := vkutil.SendMessage(b.Session, processUsage(c.Usage(), c.Info().Name), peerID, true)
-					if err != nil {
-						log.Println(err.Error(), "peer_id: ", peerID)
-					}
-
+					vkutil.SendMessage(b.Session, processUsage(c.Usage(), c.Info().Name), peerID, true)
 					return
 				}
 				if in(args[1], "info", "инфо", "информация") {
-					_, err := vkutil.SendMessage(b.Session, processInfo(c.Info()), peerID, true)
-					if err != nil {
-						log.Println(err.Error(), "peer_id: ", peerID)
-					}
-
+					vkutil.SendMessage(b.Session, processInfo(c.Info()), peerID, true)
 					return
 				}
 			}
 
-			if pm {
-				if c.Info().ForPm {
-					go c.Run(msg, args[1:], b)
-				} else {
-					vkutil.SendMessage(b.Session, "Эта команда не работает в лс", peerID, true)
-				}
+			if pm && !c.Info().ForPm {
+				vkutil.SendMessage(b.Session, "Эта команда не работает в лс", peerID, true)
+			} else if !pm && !c.Info().ForConf {
+				vkutil.SendMessage(b.Session, "Эта команда не работает в беседах", peerID, true)
 			} else {
-				if c.Info().ForConf {
-					go c.Run(msg, args[1:], b)
-				} else {
-					vkutil.SendMessage(b.Session, "Эта команда не работает в беседах", peerID, true)
-				}
+				go c.Run(msg, args[1:], b)
 			}
 
 			for _, h := range b.hooks.OnCommand {
