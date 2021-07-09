@@ -7,14 +7,11 @@ import (
 	"time"
 
 	"github.com/beshenkaD/maschinenkonzept/core"
-	"github.com/beshenkaD/maschinenkonzept/core/base"
-	"github.com/beshenkaD/maschinenkonzept/core/captcha"
 )
 
-func loader(c *core.Conversation) []core.Module {
+func loader(c *core.Chat) []core.Module {
 	modules := make([]core.Module, 0, 2)
-	modules = append(modules, base.New())
-	modules = append(modules, captcha.New())
+	modules = append(modules, &core.ConfigModule{})
 
 	return modules
 }
@@ -22,7 +19,7 @@ func loader(c *core.Conversation) []core.Module {
 func main() {
 	rand.Seed(time.Now().UnixNano())
 
-	bot, err := core.New(os.Getenv("VK_TOKEN"), '/', loader)
+	bot, err := core.New(os.Getenv("VK_TOKEN"), loader)
 
 	if err != nil {
 		log.Fatal(err)

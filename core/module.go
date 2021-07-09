@@ -4,6 +4,8 @@ import (
 	"github.com/SevereCloud/vksdk/v2/events"
 )
 
+type vkMessage events.MessageNewObject
+
 // Модуль отслеживает все входящие запросы в зависимости от того какие интерфейсы он реализует
 type Module interface {
 	Name() string
@@ -15,66 +17,59 @@ type Module interface {
 // Хук для нового сообщения
 type ModuleOnMessage interface {
 	Module
-	OnMessage(*Bot, events.MessageNewObject)
-}
-
-// Хук для команды (команды отделяются от обычных сообщений)
-type ModuleOnCommand interface {
-	Module
-	OnCommand(*Bot, events.MessageNewObject)
+	OnMessage(*Chat, vkMessage)
 }
 
 // Хук для добавления пользователя в беседу
 type ModuleOnInviteUser interface {
 	Module
-	OnInviteUser(*Bot, events.MessageNewObject)
+	OnInviteUser(*Chat, vkMessage)
 }
 
 // Хук для кика пользователя из беседы
 type ModuleOnKickUser interface {
 	Module
-	OnKickUser(*Bot, events.MessageNewObject)
+	OnKickUser(*Chat, vkMessage)
 }
 
 // Хук для закрепления сообщения
 type ModuleOnPinMessage interface {
 	Module
-	OnPinMessage(*Bot, events.MessageNewObject)
+	OnPinMessage(*Chat, vkMessage)
 }
 
 // Хук для открепления сообщения
 type ModuleOnUnpinMessage interface {
 	Module
-	OnUnpinMessage(*Bot, events.MessageNewObject)
+	OnUnpinMessage(*Chat, vkMessage)
 }
 
 // Хук для вступления по ссылке
 type ModuleOnInviteByLink interface {
 	Module
-	OnInviteByLink(*Bot, events.MessageNewObject)
+	OnInviteByLink(*Chat, vkMessage)
 }
 
 // Хук для создания чата
 type ModuleOnChatCreate interface {
 	Module
-	OnChatCreate(*Bot, events.MessageNewObject)
+	OnChatCreate(*Chat, vkMessage)
 }
 
 // Хук для приглашения бота (этого)
 type ModuleOnInviteBot interface {
 	Module
-	OnInviteBot(*Bot, events.MessageNewObject)
+	OnInviteBot(*Chat, vkMessage)
 }
 
 // Хук выполняется каждую секунду
 type ModuleOnTick interface {
 	Module
-	OnTick(*Bot)
+	OnTick(*Chat)
 }
 
 type moduleHooks struct {
 	OnMessage      []ModuleOnMessage
-	OnCommand      []ModuleOnCommand
 	OnInviteUser   []ModuleOnInviteUser
 	OnKickUser     []ModuleOnKickUser
 	OnPinMessage   []ModuleOnPinMessage
@@ -110,16 +105,12 @@ type CommandInfo struct {
 
 // Команда это любая команда адресованная боту
 type Command interface {
-	Run(events.MessageNewObject, []string, *Bot)
+	Run(vkMessage, []string, *Chat)
 	Usage() *CommandUsage
 	Info() *CommandInfo
 }
 
-func (c *Conversation) RegisterModule(m Module) {
-	if h, ok := m.(ModuleOnCommand); ok {
-		c.hooks.OnCommand = append(c.hooks.OnCommand, h)
-	}
-
+func (c *Chat) RegisterModule(m Module) {
 	if h, ok := m.(ModuleOnMessage); ok {
 		c.hooks.OnMessage = append(c.hooks.OnMessage, h)
 	}

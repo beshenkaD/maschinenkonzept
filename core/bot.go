@@ -15,13 +15,13 @@ import (
 )
 
 type Bot struct {
-	Session           *api.VK
-	lp                *longpoll.LongPoll
-	SelfName          string
-	SelfID            int
-	ConversationsLock sync.Mutex
-	Conversations     map[int]*Conversation
-	loader            func(*Conversation) []Module
+	Session   *api.VK
+	lp        *longpoll.LongPoll
+	SelfName  string
+	SelfID    int
+	ChatsLock sync.Mutex
+	Chats     map[int]*Chat
+	loader    func(*Chat) []Module
 
 	ticker *time.Ticker
 	done   chan struct{}
@@ -30,9 +30,7 @@ type Bot struct {
 	StartTime time.Time
 }
 
-type vkMessage events.MessageNewObject
-
-func New(token string, prefix byte, loader func(*Conversation) []Module) (*Bot, error) {
+func New(token string, loader func(*Chat) []Module) (*Bot, error) {
 	session := api.NewVK(token)
 	group, err := session.GroupsGetByID(nil)
 
@@ -47,14 +45,14 @@ func New(token string, prefix byte, loader func(*Conversation) []Module) (*Bot, 
 	}
 
 	b := Bot{
-		Session:       session,
-		lp:            lp,
-		SelfName:      group[0].Name,
-		SelfID:        group[0].ID,
-		Conversations: make(map[int]*Conversation),
-		loader:        loader,
-		Processed:     0,
-		StartTime:     time.Now(),
+		Session:   session,
+		lp:        lp,
+		SelfName:  group[0].Name,
+		SelfID:    group[0].ID,
+		Chats:     make(map[int]*Chat),
+		loader:    loader,
+		Processed: 0,
+		StartTime: time.Now(),
 	}
 
 	return &b, nil
@@ -63,9 +61,9 @@ func New(token string, prefix byte, loader func(*Conversation) []Module) (*Bot, 
 func (b *Bot) AddToConversation(chatID int) {
 	conversation := NewConversation(b, chatID)
 
-	b.ConversationsLock.Lock()
-	b.Conversations[chatID] = conversation
-	b.ConversationsLock.Unlock()
+	b.ChatsLock.Lock()
+	b.Chats[chatID] = conversation
+	b.ChatsLock.Unlock()
 
 	conversation.Modules = b.loader(conversation)
 
@@ -120,15 +118,21 @@ func processInfo(info *CommandInfo) string {
 	return fmt.Sprintf(s, info.Name, info.Desc)
 }
 
-func (b *Bot) RunCommand(msg events.MessageNewObject, info *Conversation, pm bool) {
+func (b *Bot) RunCommand(msg vkMessage, chat *Chat, pm bool) {
+	var prefix byte = '/'
+
+	if chat != nil && len(chat.Config.Basic.CommandPrefix) == 1 {
+		prefix = chat.Config.Basic.CommandPrefix[0]
+	}
+
 	peerID := msg.Message.PeerID
 	text := msg.Message.Text
 
-	if len(text) > 1 && text[0] == info.Prefix {
+	if len(text) > 1 && text[0] == prefix {
 		args := strings.Split(text[1:], " ")
 		key := args[0]
 
-		c, ok := info.commands[key]
+		c, ok := chat.commands[key]
 		if ok {
 			if len(args) > 1 {
 				if in(args[1], "помощь", "хелп", "help", "usage") {
@@ -146,44 +150,46 @@ func (b *Bot) RunCommand(msg events.MessageNewObject, info *Conversation, pm boo
 			} else if !pm && !c.Info().ForConf {
 				vkutil.SendMessage(b.Session, "Эта команда не работает в беседах", peerID, true)
 			} else {
-				go c.Run(msg, args[1:], b)
+				go c.Run(msg, args[1:], chat)
 			}
 
+		} else if !chat.Config.Basic.IgnoreInvalidCommands {
+			vkutil.SendMessage(chat.Bot.Session, "Неправильная команда. Используйте /help", chat.ID, true)
 		}
 	} else if !pm {
-		for _, h := range info.hooks.OnMessage {
-			go h.OnMessage(b, msg)
+		for _, h := range chat.hooks.OnMessage {
+			go h.OnMessage(chat, msg)
 		}
 	}
 }
 
-func (b *Bot) OnMessage(msg events.MessageNewObject, chat *Conversation) {
+func (b *Bot) OnMessage(msg vkMessage, chat *Chat) {
 	b.Processed++
 	pm := chat.ID < 2000000000
 
 	b.RunCommand(msg, chat, pm)
 }
 
-func (b *Bot) OnInviteUser(msg events.MessageNewObject, chat *Conversation) {
+func (b *Bot) OnInviteUser(msg vkMessage, chat *Chat) {
 	for _, h := range chat.hooks.OnInviteUser {
 		if chat.ShouldRunHooks(chat.ID, h) {
-			go h.OnInviteUser(b, msg)
+			go h.OnInviteUser(chat, msg)
 		}
 	}
 }
 
-func (b *Bot) OnInviteBot(msg events.MessageNewObject, chat *Conversation) {
+func (b *Bot) OnInviteBot(msg vkMessage, chat *Chat) {
 	for _, h := range chat.hooks.OnInviteBot {
 		if chat.ShouldRunHooks(chat.ID, h) {
-			go h.OnInviteBot(b, msg)
+			go h.OnInviteBot(chat, msg)
 		}
 	}
 }
 
-func (b *Bot) OnInviteByLink(msg events.MessageNewObject, chat *Conversation) {
+func (b *Bot) OnInviteByLink(msg vkMessage, chat *Chat) {
 	for _, h := range chat.hooks.OnInviteByLink {
 		if chat.ShouldRunHooks(chat.ID, h) {
-			go h.OnInviteByLink(b, msg)
+			go h.OnInviteByLink(chat, msg)
 		}
 	}
 }
@@ -206,15 +212,15 @@ func (b *Bot) Run() {
 	b.done = make(chan struct{})
 
 	b.lp.MessageNew(func(_ context.Context, obj events.MessageNewObject) {
+		msg := vkMessage(obj)
 		peerID := obj.Message.PeerID
 
-		chat, ok := b.Conversations[peerID]
+		chat, ok := b.Chats[peerID]
 
 		if !ok {
-			vkutil.SendMessage(b.Session, "Похоже вы впервые добавили бота в беседу!. Настройте его командой TODO", peerID, true)
 			b.AddToConversation(obj.Message.PeerID)
 
-			chat = b.Conversations[peerID]
+			chat = b.Chats[peerID]
 		}
 
 		switch obj.Message.Action.Type {
@@ -223,13 +229,17 @@ func (b *Bot) Run() {
 		case "chat_create":
 		case "chat_title_update":
 		case "chat_invite_user":
-			go b.OnInviteUser(obj, chat)
+			if msg.Message.Action.MemberID == -b.SelfID {
+				go b.OnInviteBot(msg, chat)
+			} else {
+				go b.OnInviteUser(msg, chat)
+			}
 		case "chat_kick_user":
 		case "chat_pin_message":
 		case "chat_unpin_message":
 		case "chat_invite_user_by_link":
 		default:
-			go b.OnMessage(obj, chat)
+			go b.OnMessage(msg, chat)
 		}
 
 		// log.Printf("%d: %s", obj.Message.PeerID, obj.Message.Text)
