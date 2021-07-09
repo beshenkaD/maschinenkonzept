@@ -4,7 +4,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/SevereCloud/vksdk/v2/api"
+	"github.com/SevereCloud/vksdk/v2/api/params"
 )
 
 type Conversation struct {
@@ -21,21 +21,19 @@ type Conversation struct {
 
 // Возвращает объект беседы с дефолтной конфигурацией
 func NewConversation(bot *Bot, ID int) *Conversation {
-	var response api.MessagesGetConversationMembersResponse
+	b := params.NewMessagesGetConversationMembersBuilder()
+	b.PeerID(ID)
 
-	params := api.Params{
-		"peer_id": ID,
-	}
+	users, err := bot.Session.MessagesGetConversationMembers(b.Params)
 
-	err := bot.Session.RequestUnmarshal("messages.getConversationMembers", &response, params)
 	if err != nil {
-		log.Println(err)
+		log.Println(err.Error())
 	}
 
 	var owner int
-	for i, u := range response.Items {
+	for _, u := range users.Items {
 		if u.IsOwner {
-			owner = response.Profiles[i].ID
+			owner = u.MemberID
 		}
 	}
 
@@ -54,6 +52,10 @@ func (info *Conversation) addCommand(c Command, m Module) {
 }
 
 // TODO
-func (info *Conversation) ShouldRunModule(chatID int, m Module) bool {
+func (info *Conversation) ShouldRunHooks(chatID int, m Module) bool {
+	if chatID < 2000000000 {
+		return false
+	}
+
 	return true
 }

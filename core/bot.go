@@ -30,6 +30,8 @@ type Bot struct {
 	StartTime time.Time
 }
 
+type vkMessage events.MessageNewObject
+
 func New(token string, prefix byte, loader func(*Conversation) []Module) (*Bot, error) {
 	session := api.NewVK(token)
 	group, err := session.GroupsGetByID(nil)
@@ -118,9 +120,7 @@ func processInfo(info *CommandInfo) string {
 	return fmt.Sprintf(s, info.Name, info.Desc)
 }
 
-func (b *Bot) ProcessMessage(msg events.MessageNewObject, info *Conversation, pm bool) {
-	b.Processed++
-
+func (b *Bot) RunCommand(msg events.MessageNewObject, info *Conversation, pm bool) {
 	peerID := msg.Message.PeerID
 	text := msg.Message.Text
 
@@ -151,8 +151,39 @@ func (b *Bot) ProcessMessage(msg events.MessageNewObject, info *Conversation, pm
 
 		}
 	} else if !pm {
-		for _, h := range info.hooks.OnCommand {
-			go h.OnCommand(b, msg)
+		for _, h := range info.hooks.OnMessage {
+			go h.OnMessage(b, msg)
+		}
+	}
+}
+
+func (b *Bot) OnMessage(msg events.MessageNewObject, chat *Conversation) {
+	b.Processed++
+	pm := chat.ID < 2000000000
+
+	b.RunCommand(msg, chat, pm)
+}
+
+func (b *Bot) OnInviteUser(msg events.MessageNewObject, chat *Conversation) {
+	for _, h := range chat.hooks.OnInviteUser {
+		if chat.ShouldRunHooks(chat.ID, h) {
+			go h.OnInviteUser(b, msg)
+		}
+	}
+}
+
+func (b *Bot) OnInviteBot(msg events.MessageNewObject, chat *Conversation) {
+	for _, h := range chat.hooks.OnInviteBot {
+		if chat.ShouldRunHooks(chat.ID, h) {
+			go h.OnInviteBot(b, msg)
+		}
+	}
+}
+
+func (b *Bot) OnInviteByLink(msg events.MessageNewObject, chat *Conversation) {
+	for _, h := range chat.hooks.OnInviteByLink {
+		if chat.ShouldRunHooks(chat.ID, h) {
+			go h.OnInviteByLink(b, msg)
 		}
 	}
 }
@@ -174,33 +205,34 @@ func (b *Bot) Run() {
 	}
 	b.done = make(chan struct{})
 
-	// go func() {
-	// 	b.ticker = time.NewTicker(time.Second)
-	// 	for {
-	// 		select {
-	// 		case <-b.done:
-	// 			b.ticker.Stop()
-	// 			return
-	// 		case <-b.ticker.C:
-	// 		}
-	// 		for _, h := range b.hooks.OnTick {
-	// 			go h.OnTick(b)
-	// 		}
-	// 	}
-	// }()
-
 	b.lp.MessageNew(func(_ context.Context, obj events.MessageNewObject) {
-		// log.Printf("%d: %s", obj.Message.PeerID, obj.Message.Text)
-		pm := obj.Message.PeerID < 2000000000
+		peerID := obj.Message.PeerID
 
-		if conversation, ok := b.Conversations[obj.Message.PeerID]; ok {
-			b.ProcessMessage(obj, conversation, pm)
-		} else {
-			if !pm {
-				b.AddToConversation(obj.Message.PeerID)
-			}
-			b.ProcessMessage(obj, nil, pm)
+		chat, ok := b.Conversations[peerID]
+
+		if !ok {
+			vkutil.SendMessage(b.Session, "Похоже вы впервые добавили бота в беседу!. Настройте его командой TODO", peerID, true)
+			b.AddToConversation(obj.Message.PeerID)
+
+			chat = b.Conversations[peerID]
 		}
+
+		switch obj.Message.Action.Type {
+		case "chat_photo_update":
+		case "chat_photo_remove":
+		case "chat_create":
+		case "chat_title_update":
+		case "chat_invite_user":
+			go b.OnInviteUser(obj, chat)
+		case "chat_kick_user":
+		case "chat_pin_message":
+		case "chat_unpin_message":
+		case "chat_invite_user_by_link":
+		default:
+			go b.OnMessage(obj, chat)
+		}
+
+		// log.Printf("%d: %s", obj.Message.PeerID, obj.Message.Text)
 	})
 
 	log.Println("Start Long Poll")
