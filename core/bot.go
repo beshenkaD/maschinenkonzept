@@ -130,7 +130,7 @@ func runCommand(msg vkMessage, chat *Chat, pm bool) {
 
 	if len(text) > 1 && text[0] == prefix {
 		args := strings.Split(text[1:], " ")
-		key := args[0]
+		key := commandID(args[0])
 
 		c, ok := chat.commands[key]
 		if ok {
@@ -149,6 +149,8 @@ func runCommand(msg vkMessage, chat *Chat, pm bool) {
 				vkutil.SendMessage(vk, "Эта команда не работает в лс", peerID, true)
 			} else if !pm && !c.Info().ForConf {
 				vkutil.SendMessage(vk, "Эта команда не работает в беседах", peerID, true)
+			} else if disabled, _ := chat.Config.Modules.CommandDisabled[key]; disabled {
+				vkutil.SendMessage(vk, "Эта команда отключена в данной беседе", peerID, true)
 			} else {
 				out := c.Run(msg, args[1:], chat)
 				vkutil.SendMessage(vk, out, chat.ID, false)

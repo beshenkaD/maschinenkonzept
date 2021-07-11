@@ -9,3 +9,11 @@ func in(s string, a ...string) bool {
 
 	return false
 }
+
+func boolToRus(b bool) string {
+	if b {
+		return "Да"
+	} else {
+		return "Нет"
+	}
+}

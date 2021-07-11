@@ -11,7 +11,7 @@ type Chat struct {
 	Config     Config
 	hooks      moduleHooks
 	Modules    []Module
-	commands   map[string]Command
+	commands   map[commandID]Command
 	Bot        *Bot
 }
 
@@ -19,7 +19,7 @@ type Chat struct {
 func NewChat(bot *Bot, ID int) *Chat {
 	return &Chat{
 		ID:       ID,
-		commands: make(map[string]Command),
+		commands: make(map[commandID]Command),
 		Config:   *DefaultConfig(),
 		Bot:      bot,
 	}
@@ -27,7 +27,7 @@ func NewChat(bot *Bot, ID int) *Chat {
 
 func (ch *Chat) addCommand(c Command, m Module) {
 	name := strings.ToLower(c.Info().Name)
-	ch.commands[name] = c
+	ch.commands[commandID(name)] = c
 }
 
 func (ch *Chat) ShouldRunHooks(m Module) bool {
@@ -35,7 +35,7 @@ func (ch *Chat) ShouldRunHooks(m Module) bool {
 		return false
 	}
 
-	if _, off := ch.Config.Modules.Disabled[strings.ToLower(m.Name())]; off {
+	if _, off := ch.Config.Modules.Disabled[moduleID(strings.ToLower(m.Name()))]; off {
 		return false
 	}
 

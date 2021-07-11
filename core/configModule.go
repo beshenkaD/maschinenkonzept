@@ -17,6 +17,7 @@ func (w *ConfigModule) Commands() []Command {
 	return []Command{
 		&getConfigCommand{},
 		&setupCommand{},
+		&setConfigCommand{},
 	}
 }
 
@@ -24,8 +25,61 @@ func (w *ConfigModule) Description() string {
 	return "Управление конфигурацией беседы"
 }
 
-func (w *ConfigModule) OnInviteBot(chat *Chat, msg vkMessage) {
-	vkutil.SendMessage(chat.Bot.Session, "Привет! Настрой меня командой /setup", chat.ID, true)
+func (w *ConfigModule) OnInviteUser(chat *Chat, msg vkMessage) {
+	if msg.Message.Action.MemberID == -chat.Bot.SelfID {
+		vkutil.SendMessage(chat.Bot.Session, "Привет! Настрой меня командой /setup", chat.ID, true)
+	}
+}
+
+func disableModule(chat *Chat, module string) {
+	for _, v := range chat.Modules {
+		if strings.ToLower(v.Name()) == module {
+			cmds := v.Commands()
+			for _, c := range cmds {
+				str := strings.ToLower(c.Info().Name)
+				d := &chat.Config.Modules.CommandDisabled
+
+				if len(*d) <= 0 {
+					*d = make(map[commandID]bool)
+				}
+				chat.Config.Modules.CommandDisabled[commandID(str)] = true
+			}
+		}
+	}
+	chat.Config.Modules.Disabled[moduleID(module)] = true
+}
+
+type setConfigCommand struct{}
+
+func (c *setConfigCommand) Info() *CommandInfo {
+	return &CommandInfo{
+		Name:    "SetConfig",
+		Desc:    "Устанавливает значение в конфигурации и сохраняет её",
+		ForConf: true,
+		ForPm:   true,
+	}
+}
+
+func (c *setConfigCommand) Usage() *CommandUsage {
+	return &CommandUsage{
+		Desc: "Устанавливает значние в формате `коллекция.параметр`. Чтобы удалить значение установите его в пустоту",
+		Params: []CommandUsageParam{
+			{Name: "[параметр] [значение]", Desc: "", Optional: true},
+			{Name: "[словарь] [ключ] [значение]", Desc: "", Optional: true},
+		},
+	}
+}
+
+func (c *setConfigCommand) Run(msg vkMessage, args []string, chat *Chat) string {
+	if len(args) < 1 {
+		return "Вы не передали никаких параметров!"
+	}
+
+	if len(args) < 2 {
+		return "Вы не передали никаких значений!"
+	}
+
+	return "гатова епты)Э"
 }
 
 type getConfigCommand struct{}
@@ -33,7 +87,7 @@ type getConfigCommand struct{}
 func (c *getConfigCommand) Info() *CommandInfo {
 	return &CommandInfo{
 		Name:    "GetConfig",
-		Desc:    "fdsfsdf",
+		Desc:    "Возвращает текущую конфигурацию бота",
 		ForConf: true,
 		ForPm:   true,
 	}
@@ -46,39 +100,32 @@ func (c *getConfigCommand) Usage() *CommandUsage {
 func (c *getConfigCommand) Run(msg vkMessage, args []string, chat *Chat) string {
 	config := chat.Config
 
-	s := fmt.Sprintf(`Настройка командой /setup выполнена: %t
+	m := ""
+	cm := ""
+
+	for module := range chat.Config.Modules.Disabled {
+		m += string(module) + "\n"
+	}
+
+	for cmd := range chat.Config.Modules.CommandDisabled {
+		cm += string(cmd) + "\n"
+	}
+
+	s := fmt.Sprintf(`Настройка командой setup выполнена: %s
 Базовые настройки:
--- Игнорировать неправильные команды: %t
+-- Игнорировать неправильные команды: %s
 -- Алиасы: TODO
 -- Префикс для команд: %s
 
 Настройки модулей:
--- Отключенные модули: TODO
--- Отключенные команды: TODO
-`, config.SetupDone, config.Basic.IgnoreInvalidCommands, config.Basic.CommandPrefix)
+-- Отключенные модули: %s
+-- Отключенные команды: %s
+`, boolToRus(config.SetupDone), boolToRus(config.Basic.IgnoreInvalidCommands), config.Basic.CommandPrefix, m, cm)
 
 	return s
 }
 
 type setupCommand struct{}
-
-func (c *setupCommand) disableModule(chat *Chat, module string) {
-	for _, v := range chat.Modules {
-		if strings.ToLower(v.Name()) == module {
-			cmds := v.Commands()
-			for _, c := range cmds {
-				str := strings.ToLower(c.Info().Name)
-				d := &chat.Config.Modules.CommandDisabled
-
-				if len(*d) <= 0 {
-					*d = make(map[string]bool)
-				}
-				chat.Config.Modules.CommandDisabled[str] = true
-			}
-		}
-	}
-	chat.Config.Modules.Disabled[module] = true
-}
 
 func (c *setupCommand) Info() *CommandInfo {
 	return &CommandInfo{
@@ -132,8 +179,8 @@ func (c *setupCommand) Run(msg vkMessage, args []string, chat *Chat) string {
 	}
 
 	chat.Config.Basic.Aliases = make(map[string]string)
-	chat.Config.Modules.CommandDisabled = make(map[string]bool)
-	chat.Config.Modules.Disabled = make(map[string]bool)
+	chat.Config.Modules.CommandDisabled = make(map[commandID]bool)
+	chat.Config.Modules.Disabled = make(map[moduleID]bool)
 
 	chat.Config.SetupDone = true
 
