@@ -14,55 +14,67 @@ type Module interface {
 }
 
 // Вопрос. Нахуя так много интерфейсов? Ответ: чтобы можно было реализовывать их частично
-// Хук для нового сообщения
+
+// ""
 type ModuleOnMessage interface {
 	Module
 	OnMessage(*Chat, vkMessage)
 }
 
-// Хук для добавления пользователя в беседу
-type ModuleOnInviteUser interface {
+// chat_photo_update
+type ModuleOnPhotoUpdate interface {
 	Module
-	OnInviteUser(*Chat, vkMessage)
+	OnPhotoUpdate(*Chat, vkMessage)
 }
 
-// Хук для кика пользователя из беседы
-type ModuleOnKickUser interface {
+// chat_photo_remove
+type ModuleOnPhotoRemove interface {
 	Module
-	OnKickUser(*Chat, vkMessage)
+	OnPhotoRemove(*Chat, vkMessage)
 }
 
-// Хук для закрепления сообщения
-type ModuleOnPinMessage interface {
-	Module
-	OnPinMessage(*Chat, vkMessage)
-}
-
-// Хук для открепления сообщения
-type ModuleOnUnpinMessage interface {
-	Module
-	OnUnpinMessage(*Chat, vkMessage)
-}
-
-// Хук для вступления по ссылке
-type ModuleOnInviteByLink interface {
-	Module
-	OnInviteByLink(*Chat, vkMessage)
-}
-
-// Хук для создания чата
+// chat_create
 type ModuleOnChatCreate interface {
 	Module
 	OnChatCreate(*Chat, vkMessage)
 }
 
-// Хук для приглашения бота (этого)
-type ModuleOnInviteBot interface {
+// chat_title_update
+type ModuleOnTitleUpdate interface {
 	Module
-	OnInviteBot(*Chat, vkMessage)
+	OnTitleUpdate(*Chat, vkMessage)
 }
 
-// Хук выполняется каждую секунду
+// chat_invite_user
+type ModuleOnInviteUser interface {
+	Module
+	OnInviteUser(*Chat, vkMessage)
+}
+
+// chat_kick_user
+type ModuleOnKickUser interface {
+	Module
+	OnKickUser(*Chat, vkMessage)
+}
+
+// chat_pin_message
+type ModuleOnPinMessage interface {
+	Module
+	OnPinMessage(*Chat, vkMessage)
+}
+
+// chat_unpin_message
+type ModuleOnUnpinMessage interface {
+	Module
+	OnUnpinMessage(*Chat, vkMessage)
+}
+
+// chat_invite_user_by_link
+type ModuleOnInviteByLink interface {
+	Module
+	OnInviteByLink(*Chat, vkMessage)
+}
+
 type ModuleOnTick interface {
 	Module
 	OnTick(*Chat)
@@ -70,13 +82,15 @@ type ModuleOnTick interface {
 
 type moduleHooks struct {
 	OnMessage      []ModuleOnMessage
+	OnPhotoUpdate  []ModuleOnPhotoUpdate
+	OnPhotoRemove  []ModuleOnPhotoRemove
+	OnChatCreate   []ModuleOnChatCreate
+	OnTitleUpdate  []ModuleOnTitleUpdate
 	OnInviteUser   []ModuleOnInviteUser
 	OnKickUser     []ModuleOnKickUser
 	OnPinMessage   []ModuleOnPinMessage
 	OnUnpinMessage []ModuleOnUnpinMessage
 	OnInviteByLink []ModuleOnInviteByLink
-	OnChatCreate   []ModuleOnChatCreate
-	OnInviteBot    []ModuleOnInviteBot
 	OnTick         []ModuleOnTick
 }
 
@@ -115,6 +129,18 @@ func (c *Chat) RegisterModule(m Module) {
 		c.hooks.OnMessage = append(c.hooks.OnMessage, h)
 	}
 
+	if h, ok := m.(ModuleOnPhotoUpdate); ok {
+		c.hooks.OnPhotoUpdate = append(c.hooks.OnPhotoUpdate, h)
+	}
+
+	if h, ok := m.(ModuleOnPhotoRemove); ok {
+		c.hooks.OnPhotoRemove = append(c.hooks.OnPhotoRemove, h)
+	}
+
+	if h, ok := m.(ModuleOnTitleUpdate); ok {
+		c.hooks.OnTitleUpdate = append(c.hooks.OnTitleUpdate, h)
+	}
+
 	if h, ok := m.(ModuleOnInviteUser); ok {
 		c.hooks.OnInviteUser = append(c.hooks.OnInviteUser, h)
 	}
@@ -137,10 +163,6 @@ func (c *Chat) RegisterModule(m Module) {
 
 	if h, ok := m.(ModuleOnChatCreate); ok {
 		c.hooks.OnChatCreate = append(c.hooks.OnChatCreate, h)
-	}
-
-	if h, ok := m.(ModuleOnInviteBot); ok {
-		c.hooks.OnInviteBot = append(c.hooks.OnInviteBot, h)
 	}
 
 	if h, ok := m.(ModuleOnTick); ok {

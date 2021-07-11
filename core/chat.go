@@ -16,7 +16,7 @@ type Chat struct {
 }
 
 // Возвращает объект беседы с дефолтной конфигурацией
-func NewConversation(bot *Bot, ID int) *Chat {
+func NewChat(bot *Bot, ID int) *Chat {
 	return &Chat{
 		ID:       ID,
 		commands: make(map[string]Command),
@@ -30,8 +30,8 @@ func (ch *Chat) addCommand(c Command, m Module) {
 	ch.commands[name] = c
 }
 
-func (ch *Chat) ShouldRunHooks(chatID int, m Module) bool {
-	if chatID < 2000000000 {
+func (ch *Chat) ShouldRunHooks(m Module) bool {
+	if ch.ID < 2000000000 {
 		return false
 	}
 
