@@ -150,7 +150,8 @@ func (b *Bot) RunCommand(msg vkMessage, chat *Chat, pm bool) {
 			} else if !pm && !c.Info().ForConf {
 				vkutil.SendMessage(b.Session, "Эта команда не работает в беседах", peerID, true)
 			} else {
-				go c.Run(msg, args[1:], chat)
+				out := c.Run(msg, args[1:], chat)
+				vkutil.SendMessage(chat.Bot.Session, out, chat.ID, false)
 			}
 
 		} else if !chat.Config.Basic.IgnoreInvalidCommands {
@@ -167,7 +168,7 @@ func (b *Bot) OnMessage(msg vkMessage, chat *Chat) {
 	b.Processed++
 	pm := chat.ID < 2000000000
 
-	b.RunCommand(msg, chat, pm)
+	go b.RunCommand(msg, chat, pm)
 }
 
 func (b *Bot) OnInviteUser(msg vkMessage, chat *Chat) {

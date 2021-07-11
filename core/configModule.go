@@ -43,7 +43,7 @@ func (c *getConfigCommand) Usage() *CommandUsage {
 	return &CommandUsage{}
 }
 
-func (c *getConfigCommand) Run(msg vkMessage, args []string, chat *Chat) {
+func (c *getConfigCommand) Run(msg vkMessage, args []string, chat *Chat) string {
 	config := chat.Config
 
 	s := fmt.Sprintf(`Настройка командой /setup выполнена: %t
@@ -57,7 +57,7 @@ func (c *getConfigCommand) Run(msg vkMessage, args []string, chat *Chat) {
 -- Отключенные команды: TODO
 `, config.SetupDone, config.Basic.IgnoreInvalidCommands, config.Basic.CommandPrefix)
 
-	vkutil.SendMessage(chat.Bot.Session, s, chat.ID, true)
+	return s
 }
 
 type setupCommand struct{}
@@ -100,36 +100,34 @@ func (c *setupCommand) Usage() *CommandUsage {
 	}
 }
 
-func (c *setupCommand) Run(msg vkMessage, args []string, chat *Chat) {
-	snd := vkutil.SendMessage
-	vk := chat.Bot.Session
-
+func (c *setupCommand) Run(msg vkMessage, args []string, chat *Chat) string {
 	if len(args) < 1 {
-		snd(vk, "Вы не передали никаких аргументов. Использую конфигурацию по-умолчанию", chat.ID, false)
-		return
+		chat.Config = *DefaultConfig()
+		chat.Config.SetupDone = true
+		return "Вы не передали никаких аргументов. Использую конфигурацию по-умолчанию"
 	}
 
 	if chat.Config.SetupDone {
 		if strings.ToLower(args[0]) != "override" {
-			snd(vk, "Беседа уже была сконфигурирована! Используйте override чтобы перезаписать настройки", chat.ID, false)
-			return
+			return "Беседа уже была сконфигурирована! Используйте override чтобы перезаписать настройки"
 		}
 		args = args[1:]
 		chat.Config = *DefaultConfig()
 	}
 
-	if len(args) > 1 {
+	if len(args) >= 1 {
 		chat.Config.Basic.CommandPrefix = args[0]
+	}
 
+	if len(args) >= 2 {
 		s := args[1]
-
 		switch strings.ToLower(s) {
 		case "true":
 			chat.Config.Basic.IgnoreInvalidCommands = true
 		case "false":
 			chat.Config.Basic.IgnoreInvalidCommands = false
 		default:
-			snd(vk, fmt.Sprintf("Неверный аргумент: %s", s), chat.ID, false)
+			return fmt.Sprintf("Неверный аргумент: %s", s)
 		}
 	}
 
@@ -139,5 +137,5 @@ func (c *setupCommand) Run(msg vkMessage, args []string, chat *Chat) {
 
 	chat.Config.SetupDone = true
 
-	snd(vk, "Вы успешно настроили бота", chat.ID, false)
+	return "Вы успешно настроили бота"
 }

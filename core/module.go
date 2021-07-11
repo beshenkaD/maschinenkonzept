@@ -105,7 +105,7 @@ type CommandInfo struct {
 
 // Команда это любая команда адресованная боту
 type Command interface {
-	Run(vkMessage, []string, *Chat)
+	Run(vkMessage, []string, *Chat) string
 	Usage() *CommandUsage
 	Info() *CommandInfo
 }
