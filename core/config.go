@@ -73,9 +73,9 @@ func (c *Config) SetConfig(chat *Chat, args []string, message string) (string, b
 							return setConfigList(f, args[1:], chat)
 
 						case map[string]string:
-							value := args[1]
+							value := args[2]
 
-							return setConfigMap(f, strings.ToLower(args[0]), value, chat)
+							return setConfigMap(f, strings.ToLower(args[1]), value, chat)
 
 						default:
 							return "unknown type", false

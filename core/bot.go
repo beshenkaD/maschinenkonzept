@@ -133,6 +133,31 @@ func runCommand(msg vkMessage, chat *Chat, pm bool) {
 		key := commandID(args[0])
 
 		c, ok := chat.commands[key]
+		if !ok {
+			if alias, aliasok := chat.Config.Basic.Aliases[string(key)]; aliasok {
+				var m string
+
+				if len(args) > 1 {
+					m = chat.Config.Basic.CommandPrefix + alias + " "
+
+					for _, a := range args[1:] {
+						m += a
+					}
+				} else {
+					m = chat.Config.Basic.CommandPrefix + alias
+				}
+
+				args = strings.Split(m[1:], " ")
+
+				if len(args) < 1 {
+					vkutil.SendMessage(vk, "Ты ахуел?", peerID, true)
+					return
+				}
+
+				arg := commandID(strings.ToLower(args[0]))
+				c, ok = chat.commands[arg]
+			}
+		}
 		if ok {
 			if len(args) > 1 {
 				if in(args[1], "помощь", "хелп", "help", "usage") {
