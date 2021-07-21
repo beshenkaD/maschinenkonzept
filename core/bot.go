@@ -58,20 +58,20 @@ func New(token string, loader func(*Chat) []Module) (*Bot, error) {
 }
 
 func (b *Bot) AddChat(chatID int) {
-	conversation := NewChat(b, chatID)
+	chat := NewChat(b, chatID)
 
 	b.ChatsLock.Lock()
-	b.Chats[chatID] = conversation
+	b.Chats[chatID] = chat
 	b.ChatsLock.Unlock()
 
-	conversation.Modules = b.loader(conversation)
+	chat.Modules = b.loader(chat)
 
-	for _, v := range conversation.Modules {
-		conversation.RegisterModule(v)
+	for _, v := range chat.Modules {
+		chat.RegisterModule(v)
 		cmds := v.Commands()
 
 		for _, command := range cmds {
-			conversation.addCommand(command, v)
+			chat.addCommand(command, v)
 		}
 	}
 }
@@ -149,7 +149,7 @@ func runCommand(msg vkMessage, chat *Chat, pm bool) {
 				vkutil.SendMessage(vk, "Эта команда не работает в лс", peerID, true)
 			} else if !pm && !c.Info().ForConf {
 				vkutil.SendMessage(vk, "Эта команда не работает в беседах", peerID, true)
-			} else if disabled, _ := chat.Config.Modules.CommandDisabled[key]; disabled {
+			} else if disabled := chat.Config.Modules.CommandDisabled[key]; disabled {
 				vkutil.SendMessage(vk, "Эта команда отключена в данной беседе", peerID, true)
 			} else {
 				out := c.Run(msg, args[1:], chat)

@@ -10,7 +10,7 @@ import (
 type ConfigModule struct{}
 
 func (w *ConfigModule) Name() string {
-	return "Конфигурация"
+	return "config"
 }
 
 func (w *ConfigModule) Commands() []Command {
@@ -79,7 +79,13 @@ func (c *setConfigCommand) Run(msg vkMessage, args []string, chat *Chat) string 
 		return "Вы не передали никаких значений!"
 	}
 
-	return "гатова епты)Э"
+	s, ok := chat.Config.SetConfig(chat, args, msg.Message.Text)
+
+	if !ok {
+		return s
+	}
+
+	return s
 }
 
 type getConfigCommand struct{}
@@ -102,6 +108,7 @@ func (c *getConfigCommand) Run(msg vkMessage, args []string, chat *Chat) string 
 
 	m := ""
 	cm := ""
+	al := ""
 
 	for module := range chat.Config.Modules.Disabled {
 		m += string(module) + "\n"
@@ -111,16 +118,20 @@ func (c *getConfigCommand) Run(msg vkMessage, args []string, chat *Chat) string 
 		cm += string(cmd) + "\n"
 	}
 
+	for key, value := range chat.Config.Basic.Aliases {
+		al += key + " -> " + value + "\n"
+	}
+
 	s := fmt.Sprintf(`Настройка командой setup выполнена: %s
 Базовые настройки:
 -- Игнорировать неправильные команды: %s
--- Алиасы: TODO
+-- Алиасы: %s
 -- Префикс для команд: %s
 
 Настройки модулей:
 -- Отключенные модули: %s
 -- Отключенные команды: %s
-`, boolToRus(config.SetupDone), boolToRus(config.Basic.IgnoreInvalidCommands), config.Basic.CommandPrefix, m, cm)
+`, boolToRus(config.SetupDone), boolToRus(config.Basic.IgnoreInvalidCommands), al, config.Basic.CommandPrefix, m, cm)
 
 	return s
 }
