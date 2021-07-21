@@ -145,12 +145,15 @@ func runCommand(msg vkMessage, chat *Chat, pm bool) {
 				}
 			}
 
+			if disabled := chat.Config.Modules.CommandDisabled[key]; disabled {
+				vkutil.SendMessage(vk, "Эта команда отключена в данной беседе", peerID, true)
+				return
+			}
+
 			if pm && !c.Info().ForPm {
 				vkutil.SendMessage(vk, "Эта команда не работает в лс", peerID, true)
 			} else if !pm && !c.Info().ForConf {
 				vkutil.SendMessage(vk, "Эта команда не работает в беседах", peerID, true)
-			} else if disabled := chat.Config.Modules.CommandDisabled[key]; disabled {
-				vkutil.SendMessage(vk, "Эта команда отключена в данной беседе", peerID, true)
 			} else {
 				out := c.Run(msg, args[1:], chat)
 				vkutil.SendMessage(vk, out, chat.ID, false)

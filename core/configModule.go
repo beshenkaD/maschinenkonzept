@@ -81,6 +81,8 @@ func (c *setConfigCommand) Run(msg vkMessage, args []string, chat *Chat) string 
 
 	s, ok := chat.Config.SetConfig(chat, args, msg.Message.Text)
 
+	fmt.Println(chat.Config.Modules.CommandDisabled)
+
 	if !ok {
 		return s
 	}
@@ -162,6 +164,7 @@ func (c *setupCommand) Run(msg vkMessage, args []string, chat *Chat) string {
 	if len(args) < 1 {
 		chat.Config = *DefaultConfig()
 		chat.Config.SetupDone = true
+
 		return "Вы не передали никаких аргументов. Использую конфигурацию по-умолчанию"
 	}
 

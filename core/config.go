@@ -69,13 +69,13 @@ func (c *Config) SetConfig(chat *Chat, args []string, message string) (string, b
 								return name + " must be set to either 'true' or 'false'", false
 							}
 
-						case map[string]string, map[moduleID]bool, map[commandID]bool:
-							value := ""
-							if len(args) > 2 {
-								value = args[2]
-							}
+						case map[moduleID]bool, map[commandID]bool:
+							return setConfigList(f, args[1:], chat)
 
-							return setConfigMap(f, strings.ToLower(args[1]), value, chat)
+						case map[string]string:
+							value := args[1]
+
+							return setConfigMap(f, strings.ToLower(args[0]), value, chat)
 
 						default:
 							return "unknown type", false
@@ -136,6 +136,41 @@ func setConfigValue(f reflect.Value, value string, chat *Chat) error {
 	}
 
 	return nil
+}
+
+func setConfigList(f reflect.Value, values []string, chat *Chat) (string, bool) {
+	switch f.Kind() {
+	case reflect.Slice:
+		f.Set(reflect.MakeSlice(f.Type(), 0, len(values)))
+		if len(values) > 0 && len(values[0]) > 0 {
+			for _, value := range values {
+				v := reflect.New(f.Type().Elem()).Elem()
+				if err := setConfigValue(v, value, chat); err != nil {
+					return "Value error: " + err.Error(), false
+				}
+				f.Set(reflect.Append(f, v))
+			}
+		}
+		return fmt.Sprint(f.Interface()), true
+	case reflect.Map:
+		if f.Type().Elem() != reflect.TypeOf(true) {
+			return "Map sent into list function!", false
+		}
+		f.Set(reflect.MakeMap(f.Type()))
+		stripped := []string{}
+		if len(values) > 0 && len(values[0]) > 0 {
+			for _, value := range values {
+				v := reflect.New(f.Type().Key()).Elem()
+				if err := setConfigValue(v, value, chat); err != nil {
+					return "Value error: " + err.Error(), false
+				}
+				f.SetMapIndex(v, reflect.ValueOf(true))
+				stripped = append(stripped, fmt.Sprint(v.Interface()))
+			}
+		}
+		return "[" + strings.Join(stripped, ", ") + "]", true
+	}
+	return "Unknown list type!", false
 }
 
 func deleteFromMapReflect(f reflect.Value, k reflect.Value) string {

@@ -12,6 +12,7 @@ import (
 func loader(c *core.Chat) []core.Module {
 	modules := make([]core.Module, 0, 2)
 	modules = append(modules, &core.ConfigModule{})
+	modules = append(modules, &core.InfoModule{})
 
 	return modules
 }
