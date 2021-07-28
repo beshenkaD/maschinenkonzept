@@ -1,6 +1,9 @@
 package core
 
 import (
+	"encoding/json"
+	"fmt"
+	"os"
 	"strings"
 	"sync"
 )
@@ -20,9 +23,42 @@ func NewChat(bot *Bot, ID int) *Chat {
 	return &Chat{
 		ID:       ID,
 		commands: make(map[commandID]Command),
-		Config:   *DefaultConfig(),
+		Config:   *NewConfig(),
 		Bot:      bot,
 	}
+}
+
+func (ch *Chat) WriteConfig() {
+	bs, err := json.Marshal(ch.Config)
+
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
+	if err := os.WriteFile(fmt.Sprintf("%d.json", ch.ID), bs, 0664); err != nil {
+		fmt.Println(err.Error())
+	}
+}
+
+func (ch *Chat) LoadConfig() error {
+	content, err := os.ReadFile(fmt.Sprintf("./%d.json", ch.ID))
+
+	if err != nil {
+		fmt.Println(err.Error())
+		return err
+	}
+
+	var config Config
+	err = json.Unmarshal(content, &config)
+
+	if err != nil {
+		fmt.Println(err.Error())
+		return err
+	}
+
+	ch.Config = config
+
+	return nil
 }
 
 func (ch *Chat) addCommand(c Command, m Module) {

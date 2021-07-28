@@ -11,20 +11,20 @@ type moduleID string
 type commandID string
 
 type Config struct {
-	SetupDone bool
+	SetupDone bool `json:"setupdone"`
 	Basic     struct {
-		IgnoreInvalidCommands bool
-		Aliases               map[string]string
-		CommandPrefix         string
-	}
+		IgnoreInvalidCommands bool              `json:"ignoreinvalidcommands"`
+		Aliases               map[string]string `json:"aliases"`
+		CommandPrefix         string            `json:"commandprefix"`
+	} `json:"basic"`
 
 	Modules struct {
-		Disabled        map[moduleID]bool
-		CommandDisabled map[commandID]bool
-	}
+		Disabled         map[moduleID]bool  `json:"disabledmodules"`
+		DisabledCommands map[commandID]bool `json:"disabledcommands"`
+	} `json:"modules"`
 }
 
-func DefaultConfig() *Config {
+func NewConfig() *Config {
 	config := &Config{
 		SetupDone: false,
 	}
@@ -35,7 +35,7 @@ func DefaultConfig() *Config {
 	return config
 }
 
-func (c *Config) SetConfig(chat *Chat, args []string, message string) (string, bool) {
+func (c *Config) Set(chat *Chat, args []string, message string) (string, bool) {
 	name := args[0]
 	names := strings.SplitN(strings.ToLower(name), ".", 3)
 

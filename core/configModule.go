@@ -37,12 +37,12 @@ func disableModule(chat *Chat, module string) {
 			cmds := v.Commands()
 			for _, c := range cmds {
 				str := strings.ToLower(c.Info().Name)
-				d := &chat.Config.Modules.CommandDisabled
+				d := &chat.Config.Modules.DisabledCommands
 
 				if len(*d) <= 0 {
 					*d = make(map[commandID]bool)
 				}
-				chat.Config.Modules.CommandDisabled[commandID(str)] = true
+				chat.Config.Modules.DisabledCommands[commandID(str)] = true
 			}
 		}
 	}
@@ -79,13 +79,13 @@ func (c *setConfigCommand) Run(msg vkMessage, args []string, chat *Chat) string 
 		return "Вы не передали никаких значений!"
 	}
 
-	s, ok := chat.Config.SetConfig(chat, args, msg.Message.Text)
-
-	fmt.Println(chat.Config.Modules.CommandDisabled)
+	s, ok := chat.Config.Set(chat, args, msg.Message.Text)
 
 	if !ok {
 		return s
 	}
+
+	go chat.WriteConfig()
 
 	return s
 }
@@ -116,7 +116,7 @@ func (c *getConfigCommand) Run(msg vkMessage, args []string, chat *Chat) string 
 		m += string(module) + "\n"
 	}
 
-	for cmd := range chat.Config.Modules.CommandDisabled {
+	for cmd := range chat.Config.Modules.DisabledCommands {
 		cm += string(cmd) + "\n"
 	}
 
@@ -162,7 +162,7 @@ func (c *setupCommand) Usage() *CommandUsage {
 
 func (c *setupCommand) Run(msg vkMessage, args []string, chat *Chat) string {
 	if len(args) < 1 {
-		chat.Config = *DefaultConfig()
+		chat.Config = *NewConfig()
 		chat.Config.SetupDone = true
 
 		return "Вы не передали никаких аргументов. Использую конфигурацию по-умолчанию"
@@ -173,7 +173,7 @@ func (c *setupCommand) Run(msg vkMessage, args []string, chat *Chat) string {
 			return "Беседа уже была сконфигурирована! Используйте override чтобы перезаписать настройки"
 		}
 		args = args[1:]
-		chat.Config = *DefaultConfig()
+		chat.Config = *NewConfig()
 	}
 
 	if len(args) >= 1 {
@@ -193,10 +193,12 @@ func (c *setupCommand) Run(msg vkMessage, args []string, chat *Chat) string {
 	}
 
 	chat.Config.Basic.Aliases = make(map[string]string)
-	chat.Config.Modules.CommandDisabled = make(map[commandID]bool)
+	chat.Config.Modules.DisabledCommands = make(map[commandID]bool)
 	chat.Config.Modules.Disabled = make(map[moduleID]bool)
 
 	chat.Config.SetupDone = true
+
+	go chat.WriteConfig()
 
 	return "Вы успешно настроили бота"
 }

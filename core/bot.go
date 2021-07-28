@@ -74,6 +74,8 @@ func (b *Bot) AddChat(chatID int) {
 			chat.addCommand(command, v)
 		}
 	}
+
+	chat.LoadConfig()
 }
 
 func processUsage(usage *CommandUsage, name string) string {
@@ -170,7 +172,7 @@ func runCommand(msg vkMessage, chat *Chat, pm bool) {
 				}
 			}
 
-			if disabled := chat.Config.Modules.CommandDisabled[key]; disabled {
+			if disabled := chat.Config.Modules.DisabledCommands[key]; disabled {
 				vkutil.SendMessage(vk, "Эта команда отключена в данной беседе", peerID, true)
 				return
 			}
