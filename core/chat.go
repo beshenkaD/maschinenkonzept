@@ -7,6 +7,8 @@ import (
 	"path"
 	"strings"
 	"sync"
+
+	"github.com/beshenkaD/maschinenkonzept/vkutil"
 )
 
 type Chat struct {
@@ -26,6 +28,14 @@ func NewChat(bot *Bot, ID int) *Chat {
 		Config:   *NewConfig(),
 		Bot:      bot,
 	}
+}
+
+func (ch *Chat) SendMessage(msg string) {
+	vkutil.SendMessage(ch.Bot.Session, msg, ch.ID, false)
+}
+
+func (ch *Chat) RemoveUser() {
+
 }
 
 /*

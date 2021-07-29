@@ -11,7 +11,6 @@ import (
 	"github.com/SevereCloud/vksdk/v2/api"
 	"github.com/SevereCloud/vksdk/v2/events"
 	"github.com/SevereCloud/vksdk/v2/longpoll-bot"
-	"github.com/beshenkaD/maschinenkonzept/vkutil"
 )
 
 type Bot struct {
@@ -128,8 +127,6 @@ func runCommand(msg vkMessage, chat *Chat, pm bool) {
 		prefix = chat.Config.Basic.CommandPrefix[0]
 	}
 
-	vk := chat.Bot.Session
-	peerID := msg.Message.PeerID
 	text := msg.Message.Text
 
 	if len(text) > 1 && text[0] == prefix {
@@ -154,7 +151,7 @@ func runCommand(msg vkMessage, chat *Chat, pm bool) {
 				args = strings.Split(m[1:], " ")
 
 				if len(args) < 1 {
-					vkutil.SendMessage(vk, "Ты ахуел?", peerID, true)
+					chat.SendMessage("Ты ахуел?")
 					return
 				}
 
@@ -165,31 +162,31 @@ func runCommand(msg vkMessage, chat *Chat, pm bool) {
 		if ok {
 			if len(args) > 1 {
 				if in(args[1], "помощь", "хелп", "help", "usage") {
-					vkutil.SendMessage(vk, processUsage(c.Usage(), c.Info().Name), peerID, true)
+					chat.SendMessage(processUsage(c.Usage(), c.Info().Name))
 					return
 				}
 				if in(args[1], "info", "инфо", "информация") {
-					vkutil.SendMessage(vk, processInfo(c.Info()), peerID, true)
+					chat.SendMessage(processInfo(c.Info()))
 					return
 				}
 			}
 
 			if disabled := chat.Config.Modules.DisabledCommands[key]; disabled {
-				vkutil.SendMessage(vk, "Эта команда отключена в данной беседе", peerID, true)
+				chat.SendMessage("Эта команда отключена в данной беседе")
 				return
 			}
 
 			if pm && !c.Info().ForPm {
-				vkutil.SendMessage(vk, "Эта команда не работает в лс", peerID, true)
+				chat.SendMessage("Эта команда не работает в лс")
 			} else if !pm && !c.Info().ForConf {
-				vkutil.SendMessage(vk, "Эта команда не работает в беседах", peerID, true)
+				chat.SendMessage("Эта команда не работает в беседах")
 			} else {
 				out := c.Run(msg, args[1:], chat)
-				vkutil.SendMessage(vk, out, chat.ID, false)
+				chat.SendMessage(out)
 			}
 
 		} else if !chat.Config.Basic.IgnoreInvalidCommands {
-			vkutil.SendMessage(vk, "Неправильная команда. Используйте /help", chat.ID, true)
+			chat.SendMessage("Неправильная команда. Используйте help")
 		}
 	} else if !pm {
 		for _, h := range chat.hooks.OnMessage {
