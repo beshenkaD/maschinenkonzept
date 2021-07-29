@@ -15,13 +15,14 @@ import (
 )
 
 type Bot struct {
-	Session   *api.VK
-	lp        *longpoll.LongPoll
-	SelfName  string
-	SelfID    int
-	ChatsLock sync.RWMutex
-	Chats     map[int]*Chat
-	loader    func(*Chat) []Module
+	Session     *api.VK
+	lp          *longpoll.LongPoll
+	SelfName    string
+	SelfID      int
+	ChatsLock   sync.RWMutex
+	Chats       map[int]*Chat
+	ConfigsPath string
+	loader      func(*Chat) []Module
 
 	done chan struct{}
 
@@ -44,14 +45,15 @@ func New(token string, loader func(*Chat) []Module) (*Bot, error) {
 	}
 
 	b := Bot{
-		Session:   session,
-		lp:        lp,
-		SelfName:  group[0].Name,
-		SelfID:    group[0].ID,
-		Chats:     make(map[int]*Chat),
-		loader:    loader,
-		Processed: 0,
-		StartTime: time.Now(),
+		Session:     session,
+		lp:          lp,
+		SelfName:    group[0].Name,
+		SelfID:      group[0].ID,
+		Chats:       make(map[int]*Chat),
+		ConfigsPath: "/home/beshenka/go/src/github.com/beshenkaD/maschinenkonzept/res",
+		loader:      loader,
+		Processed:   0,
+		StartTime:   time.Now(),
 	}
 
 	return &b, nil
@@ -273,8 +275,6 @@ func (b *Bot) Run() {
 		default:
 			go b.OnMessage(chat, msg)
 		}
-
-		// log.Printf("%d: %s", obj.Message.PeerID, obj.Message.Text)
 	})
 
 	log.Println("Start Long Poll")

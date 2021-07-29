@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path"
 	"strings"
 	"sync"
 )
@@ -18,7 +19,6 @@ type Chat struct {
 	Bot        *Bot
 }
 
-// Возвращает объект беседы с дефолтной конфигурацией
 func NewChat(bot *Bot, ID int) *Chat {
 	return &Chat{
 		ID:       ID,
@@ -28,23 +28,35 @@ func NewChat(bot *Bot, ID int) *Chat {
 	}
 }
 
+/*
+   Использовать json файлы оказалось проще чем нормальную бд
+   Причины:
+      1. В дальнейшем в конфиг будут добавляться новые поля. В sql базах данных это ебаный геморрой
+      2. Адекватной sql базы данных (sqlite) под гошку без ебли нема
+
+   Я надеюсь это временное решение. В будущем можно приспособить сюда mysql или mongo
+*/
+
+// Сохраняет конфигурацию беседы на диск
 func (ch *Chat) WriteConfig() {
 	bs, err := json.Marshal(ch.Config)
 
 	if err != nil {
-		fmt.Println(err.Error())
+		return
 	}
 
-	if err := os.WriteFile(fmt.Sprintf("%d.json", ch.ID), bs, 0664); err != nil {
-		fmt.Println(err.Error())
+	f := path.Join(ch.Bot.ConfigsPath, fmt.Sprintf("%d.json", ch.ID))
+	if err := os.WriteFile(f, bs, 0664); err != nil {
+		return
 	}
 }
 
+// Загружает конфигурацию беседы с диска
 func (ch *Chat) LoadConfig() error {
-	content, err := os.ReadFile(fmt.Sprintf("./%d.json", ch.ID))
+	f := path.Join(ch.Bot.ConfigsPath, fmt.Sprintf("%d.json", ch.ID))
+	content, err := os.ReadFile(f)
 
 	if err != nil {
-		fmt.Println(err.Error())
 		return err
 	}
 
@@ -52,7 +64,6 @@ func (ch *Chat) LoadConfig() error {
 	err = json.Unmarshal(content, &config)
 
 	if err != nil {
-		fmt.Println(err.Error())
 		return err
 	}
 

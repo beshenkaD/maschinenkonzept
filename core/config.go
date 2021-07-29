@@ -35,6 +35,8 @@ func NewConfig() *Config {
 	return config
 }
 
+// TODO Отрефакторить этот пиздец
+// TODO проверка количества аргументов
 func (c *Config) Set(chat *Chat, args []string, message string) (string, bool) {
 	name := args[0]
 	names := strings.SplitN(strings.ToLower(name), ".", 3)
