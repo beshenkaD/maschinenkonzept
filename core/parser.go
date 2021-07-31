@@ -5,7 +5,7 @@ import (
 	"unicode"
 )
 
-func parse(m *Message, chat int, user *User, prefix byte) (*CommandInput, error) {
+func parse(m *Message, chat int, user *User, prefix string) (*CommandInput, error) {
 	s := strings.TrimSpace(m.Text)
 
 	if !strings.HasPrefix(s, string(prefix)) {

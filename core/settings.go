@@ -2,22 +2,29 @@ package core
 
 var (
 	ignoreInvalid    = make(map[int]bool)
-	prefix           = make(map[int]byte)
-	language         = make(map[int]string)
+	prefix           = make(map[int]string)
 	disabledCommands = make(map[int][]string)
 	disabledTicks    = make(map[int][]string)
 	disabledHooks    = make(map[int][]string)
 )
 
 const (
-	DefaultLanguage = "en"
+	defaultPrefix = "/"
 )
+
+func getPrefix(chat int) string {
+	if p, ok := prefix[chat]; ok {
+		return p
+	}
+
+	return defaultPrefix
+}
 
 func IgnoreInvalid(b bool, chat int) {
 	ignoreInvalid[chat] = b
 }
 
-func Prefix(p byte, chat int) {
+func Prefix(p string, chat int) {
 	prefix[chat] = p
 }
 

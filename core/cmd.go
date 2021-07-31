@@ -104,7 +104,7 @@ func (b *Bot) handleCommand(i *CommandInput) {
 
 	if cmd == nil {
 		if !ignoreInvalid[i.Chat] {
-			b.ErrorHandler(i.Chat, errors.New(Lang(i.Chat).InvalidCommand))
+			b.ErrorHandler(i.Chat, errors.New("Invalid command"))
 		}
 		return
 	}

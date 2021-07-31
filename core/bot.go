@@ -58,7 +58,7 @@ func (b *Bot) MessageReceived(chat int, message *Message, sender *User) {
 	prefix, ok := prefix[chat]
 
 	if !ok {
-		prefix = '/'
+		prefix = defaultPrefix
 	}
 
 	input, err := parse(message, chat, sender, prefix)
@@ -79,11 +79,16 @@ func (b *Bot) MessageReceived(chat int, message *Message, sender *User) {
 	}
 
 	if IsCommandDisabled(input.Command, chat) {
-		b.ErrorHandler(chat, errors.New(Lang(chat).InvalidCommand))
+		b.ErrorHandler(chat, errors.New("Command disabled in this chat"))
 		return
 	}
 
-	go b.handleCommand(input)
+	switch input.Command {
+	case helpCommand:
+		go b.help(input)
+	default:
+		go b.handleCommand(input)
+	}
 }
 
 func (b *Bot) SendMessage(chat int, message string) {
