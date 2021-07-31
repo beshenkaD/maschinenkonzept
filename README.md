@@ -1,4 +1,3 @@
 # maschinenkonzept
-Bot for telegram and vk.com
-
+Bot for telegram and vk
 

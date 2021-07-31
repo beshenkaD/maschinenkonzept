@@ -1,44 +1,64 @@
 package core
 
+import (
+	"errors"
+	"time"
+)
+
 type ResponseHandler func(chat int, message string)
+type ErrorHandler func(chat int, err error)
 
-// TODO: cron for periodic commands
 type Bot struct {
-	handler ResponseHandler
-
-	Protocol string // vk or telegram
-
-	CmdPrefix        map[int]string
-	DisabledCommands map[int][]string
-	DisabledHooks    map[int][]string
-
-	done chan struct{}
+	ResponseHandler ResponseHandler
+	ErrorHandler    ErrorHandler
+	Protocol        string // vk or telegram
+	Chats           []int  // active chats
+	done            chan struct{}
 }
 
-func New(h ResponseHandler, protocol string) *Bot {
+func New(h ResponseHandler, e ErrorHandler, protocol string) *Bot {
 	b := &Bot{
-		handler:          h,
-		Protocol:         protocol,
-		done:             make(chan struct{}),
-		CmdPrefix:        make(map[int]string),
-		DisabledCommands: make(map[int][]string),
-		DisabledHooks:    make(map[int][]string),
+		ResponseHandler: h,
+		ErrorHandler:    e,
+		Protocol:        protocol,
+		done:            make(chan struct{}),
 	}
+
+	go b.startTick()
 
 	return b
 }
 
-func (b *Bot) ChangePrefix(prefix string, chat int) {
-	b.CmdPrefix[chat] = prefix[1:]
+func (b *Bot) IsRunning() bool {
+	if b.done != nil {
+		select {
+		case <-b.done:
+		default:
+			return true
+		}
+	}
+	return false
 }
 
-func (b *Bot) startPeriodic() {}
+func (b *Bot) startTick() {
+	for b.IsRunning() {
+		for _, chat := range b.Chats {
+			for tick := range ticks {
+				go b.handleTick(tick, chat)
+			}
+		}
+
+		time.Sleep(5 * time.Second)
+	}
+}
 
 func (b *Bot) MessageReceived(chat int, message *Message, sender *User) {
-	prefix, ok := b.CmdPrefix[chat]
+	b.Chats = append(b.Chats, chat)
+
+	prefix, ok := prefix[chat]
 
 	if !ok {
-		prefix = "/"
+		prefix = '/'
 	}
 
 	input, err := parse(message, chat, sender, prefix)
@@ -49,15 +69,21 @@ func (b *Bot) MessageReceived(chat int, message *Message, sender *User) {
 	}
 
 	if input == nil {
+		go b.handleHook(&HookInput{
+			Raw:         message.Text,
+			MessageData: message,
+			Chat:        chat,
+			User:        sender,
+		})
 		return
 	}
 
-	if b.IsCommandDisabled(input.Command, chat) {
+	if IsCommandDisabled(input.Command, chat) {
+		b.ErrorHandler(chat, errors.New("command is disabled"))
 		return
 	}
 
-	go b.handleCmd(input)
-	go b.handleHook(input)
+	go b.handleCommand(input)
 }
 
 func (b *Bot) SendMessage(chat int, message string) {
@@ -65,7 +91,7 @@ func (b *Bot) SendMessage(chat int, message string) {
 		return
 	}
 
-	b.handler(chat, message)
+	b.ResponseHandler(chat, message)
 }
 
 func (b *Bot) Stop() {
