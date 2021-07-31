@@ -79,7 +79,7 @@ func (b *Bot) MessageReceived(chat int, message *Message, sender *User) {
 	}
 
 	if IsCommandDisabled(input.Command, chat) {
-		b.ErrorHandler(chat, errors.New("command is disabled"))
+		b.ErrorHandler(chat, errors.New(Lang(chat).InvalidCommand))
 		return
 	}
 

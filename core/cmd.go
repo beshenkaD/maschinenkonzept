@@ -1,5 +1,7 @@
 package core
 
+import "errors"
+
 // Parsed user input (used for commands)
 type CommandInput struct {
 	Message     string   // Full string without prefix
@@ -22,7 +24,7 @@ type Message struct {
 	ActionType   string // https://vk.com/dev/objects/message look at action object
 	MemberId     int
 	ActionText   string
-	FwdMessages  []Message
+	FwdMessages  []*Message
 	ReplyMessage *Message
 	IsPrivate    bool
 }
@@ -102,7 +104,7 @@ func (b *Bot) handleCommand(i *CommandInput) {
 
 	if cmd == nil {
 		if !ignoreInvalid[i.Chat] {
-			b.SendMessage(i.Chat, "Invalid command")
+			b.ErrorHandler(i.Chat, errors.New(Lang(i.Chat).InvalidCommand))
 		}
 		return
 	}

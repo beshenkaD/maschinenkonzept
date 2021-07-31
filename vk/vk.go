@@ -75,37 +75,19 @@ func parseMessage(obj *object.MessagesMessage) *core.Message {
 		actionType = "message_new"
 	}
 
-	return &core.Message{
+	m := &core.Message{
 		Text:       obj.Text,
 		ActionType: actionType,
 		ActionText: obj.Action.Text,
 		MemberId:   obj.Action.MemberID,
 		IsPrivate:  obj.PeerID < 2000000000,
 	}
-}
 
-func parseFwd(obj []object.MessagesMessage) []core.Message {
-	var msgs []core.Message
-
-	for _, msg := range obj {
-		actionType := msg.Action.Type
-
-		if actionType == "" {
-			actionType = "message_new"
-		}
-
-		msgs = append(msgs, core.Message{
-			Text:         msg.Text,
-			ActionType:   actionType,
-			MemberId:     msg.Action.MemberID,
-			ActionText:   msg.Action.Text,
-			FwdMessages:  parseFwd(msg.FwdMessages),
-			ReplyMessage: parseMessage(msg.ReplyMessage),
-			IsPrivate:    msg.PeerID < 2000000000,
-		})
+	for _, msg := range obj.FwdMessages {
+		m.FwdMessages = append(m.FwdMessages, parseMessage(&msg))
 	}
 
-	return msgs
+	return m
 }
 
 func Run(token string, debug bool) {
@@ -136,7 +118,6 @@ func Run(token string, debug bool) {
 			LastName:  lastName,
 			IsBot:     from < 0,
 		})
-
 	})
 
 	log.Println("Start Long Poll (VK)")

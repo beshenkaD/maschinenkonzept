@@ -3,9 +3,14 @@ package core
 var (
 	ignoreInvalid    = make(map[int]bool)
 	prefix           = make(map[int]byte)
+	language         = make(map[int]string)
 	disabledCommands = make(map[int][]string)
 	disabledTicks    = make(map[int][]string)
 	disabledHooks    = make(map[int][]string)
+)
+
+const (
+	DefaultLanguage = "en"
 )
 
 func IgnoreInvalid(b bool, chat int) {
