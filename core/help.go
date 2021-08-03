@@ -5,6 +5,8 @@ import (
 	"strings"
 )
 
+// TODO: availableHooks and availableTicks. Disabled commands, hooks and ticks
+// TODO: localization
 const (
 	helpDescripton    = "Description: %s"
 	helpUsage         = "Usage: %s%s %s"
@@ -21,10 +23,10 @@ func (b *Bot) help(i *CommandInput) {
 	}
 
 	msg := &Message{
-		Text: string(getPrefix(i.Chat)) + args,
+		Text: i.Chat.Prefix + args,
 	}
 
-	in, _ := parse(msg, i.Chat, i.User, getPrefix(i.Chat))
+	in, _ := parse(msg, i.Chat, i.User)
 
 	if in == nil {
 		b.showAvailableCommands(i.Chat)
@@ -50,16 +52,16 @@ func (b *Bot) showHelp(i *CommandInput, help *Command) {
 		args += param.Name + " "
 	}
 
-	b.SendMessage(i.Chat, fmt.Sprintf(helpUsage, getPrefix(i.Chat), i.Command, args))
+	b.SendMessage(i.Chat, fmt.Sprintf(helpUsage, i.Chat.Prefix, i.Command, args))
 }
 
-func (b *Bot) showAvailableCommands(chat int) {
+func (b *Bot) showAvailableCommands(chat *Chat) {
 	var cmds []string
 
 	for k := range commands {
 		cmds = append(cmds, k)
 	}
 
-	b.SendMessage(chat, fmt.Sprintf(helpAboutCommand, getPrefix(chat)))
+	b.SendMessage(chat, fmt.Sprintf(helpAboutCommand, chat.Prefix))
 	b.SendMessage(chat, fmt.Sprintf(availableCommands, strings.Join(cmds, ", ")))
 }

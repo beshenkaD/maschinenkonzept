@@ -5,14 +5,14 @@ import (
 	"time"
 )
 
-type ResponseHandler func(chat int, message string)
-type ErrorHandler func(chat int, err error)
+type ResponseHandler func(chatID int, message string)
+type ErrorHandler func(chatID int, err error)
 
 type Bot struct {
 	ResponseHandler ResponseHandler
 	ErrorHandler    ErrorHandler
-	Protocol        string // vk or telegram
-	Chats           []int  // active chats
+	Protocol        string  // vk or telegram
+	Chats           []*Chat // active chats
 	done            chan struct{}
 }
 
@@ -52,16 +52,10 @@ func (b *Bot) startTick() {
 	}
 }
 
-func (b *Bot) MessageReceived(chat int, message *Message, sender *User) {
+func (b *Bot) MessageReceived(chat *Chat, message *Message, sender *User) {
 	b.Chats = append(b.Chats, chat)
 
-	prefix, ok := prefix[chat]
-
-	if !ok {
-		prefix = defaultPrefix
-	}
-
-	input, err := parse(message, chat, sender, prefix)
+	input, err := parse(message, chat, sender)
 
 	if err != nil {
 		b.SendMessage(chat, err.Error())
@@ -78,8 +72,8 @@ func (b *Bot) MessageReceived(chat int, message *Message, sender *User) {
 		return
 	}
 
-	if IsCommandDisabled(input.Command, chat) {
-		b.ErrorHandler(chat, errors.New("Command disabled in this chat"))
+	if chat.IsCommandDisabled(input.Command) {
+		b.ErrorHandler(chat.ID, errors.New("Command disabled in this chat"))
 		return
 	}
 
@@ -91,12 +85,12 @@ func (b *Bot) MessageReceived(chat int, message *Message, sender *User) {
 	}
 }
 
-func (b *Bot) SendMessage(chat int, message string) {
+func (b *Bot) SendMessage(chat *Chat, message string) {
 	if message == "" {
 		return
 	}
 
-	b.ResponseHandler(chat, message)
+	b.ResponseHandler(chat.ID, message)
 }
 
 func (b *Bot) Stop() {

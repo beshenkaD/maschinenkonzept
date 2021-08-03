@@ -8,24 +8,26 @@ type CommandInput struct {
 	MessageData *Message // Extra data about message
 	Command     string   // First argument passed to the bot
 	Args        []string // Arguments
-	Chat        int      // Chat where the command was called (ID)
+	Chat        *Chat    // Chat where the command was called
 	User        *User    // User who sent the message
 }
 
+// User input for hooks
 type HookInput struct {
-	Raw         string
-	MessageData *Message
-	Chat        int
-	User        *User
+	Raw         string   // Raw user message
+	MessageData *Message // Extra data about message
+	Chat        *Chat    // Chat where message was sent
+	User        *User    // User who sent the message
 }
 
+// TODO: handle telegram actions
 type Message struct {
-	Text         string
-	ActionType   string // https://vk.com/dev/objects/message look at action object
-	MemberId     int
-	ActionText   string
-	FwdMessages  []*Message
-	ReplyMessage *Message
+	Text         string     // Actual text
+	ActionType   string     // https://vk.com/dev/objects/message look at action object
+	MemberId     int        // Vk specific thing
+	ActionText   string     // Vk specific thing
+	FwdMessages  []*Message // Forward messages (if any)
+	ReplyMessage *Message   // Reply message
 	IsPrivate    bool
 }
 
@@ -35,20 +37,28 @@ type User struct {
 	LastName  string
 	IsBot     bool
 }
+
 type HelpParam struct {
 	Name        string
 	Description string
 	Optional    bool
 }
 
+// A command is a message that is called by the user using a prefix and a trigger
+// Example: /ping
+// The command can have arguments. All arguments must be described in the Params array
 type Command struct {
 	Name        string
-	Cmd         string
+	Trigger     string
 	Func        CmdFunc
 	Description string
 	Params      []HelpParam
 }
 
+// A hook is a passive command that is called by some event, or every time the bot receives a message
+// The list of available action types can be found here: https://vk.com/dev/objects/message (action object)
+// If you want the hook to be called on every message you must add a custom action type
+// TODO: handle telegram events
 type Hook struct {
 	Name        string
 	ActionType  string
@@ -56,6 +66,7 @@ type Hook struct {
 	Description string
 }
 
+// Tick is a passive command that is executed every 5 seconds
 type Tick struct {
 	Name        string
 	Func        TickFunc
@@ -64,18 +75,18 @@ type Tick struct {
 
 type CmdFunc func(in *CommandInput) (string, error)
 type HookFunc func(in *HookInput) (string, error)
-type TickFunc func() string
+type TickFunc func(chat *Chat) string
 
 var (
 	commands = make(map[string]*Command)
-	ticks    = make(map[string]*Tick)
 	hooks    = make(map[string]*Hook)
+	ticks    = make(map[string]*Tick)
 )
 
 func RegisterCommand(name, trigger, description string, params []HelpParam, cmdFunc CmdFunc) {
 	commands[name] = &Command{
 		Name:        name,
-		Cmd:         trigger,
+		Trigger:     trigger,
 		Func:        cmdFunc,
 		Description: description,
 		Params:      params,
@@ -103,15 +114,15 @@ func (b *Bot) handleCommand(i *CommandInput) {
 	cmd := commands[i.Command]
 
 	if cmd == nil {
-		if !ignoreInvalid[i.Chat] {
-			b.ErrorHandler(i.Chat, errors.New("Invalid command"))
+		if !i.Chat.IgnoreInvalid {
+			b.ErrorHandler(i.Chat.ID, errors.New("invalid command"))
 		}
 		return
 	}
 
 	message, err := cmd.Func(i)
 	if err != nil {
-		b.ErrorHandler(i.Chat, err)
+		b.ErrorHandler(i.Chat.ID, err)
 		return
 	}
 
@@ -127,14 +138,14 @@ func (b *Bot) handleHook(i *HookInput) {
 		return
 	}
 
-	if IsHookDisabled(hook.Name, i.Chat) {
+	if i.Chat.IsHookDisabled(hook.Name) {
 		return
 	}
 
 	message, err := hook.Func(i)
 
 	if err != nil {
-		b.ErrorHandler(i.Chat, err)
+		b.ErrorHandler(i.Chat.ID, err)
 		return
 	}
 
@@ -143,8 +154,8 @@ func (b *Bot) handleHook(i *HookInput) {
 	}
 }
 
-func (b *Bot) handleTick(name string, chat int) {
-	if IsTickDisabled(name, chat) {
+func (b *Bot) handleTick(name string, chat *Chat) {
+	if chat.IsTickDisabled(name) {
 		return
 	}
 
@@ -154,7 +165,7 @@ func (b *Bot) handleTick(name string, chat int) {
 		return
 	}
 
-	message := tick.Func()
+	message := tick.Func(chat)
 
 	if message != "" {
 		b.SendMessage(chat, message)

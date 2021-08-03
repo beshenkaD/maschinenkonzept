@@ -107,7 +107,7 @@ func Run(token string, debug bool) {
 	bot := core.New(responseHandler, errorHandler, "vk")
 
 	lp.MessageNew(func(_ context.Context, obj events.MessageNewObject) {
-		target := obj.Message.PeerID
+		target := core.NewChat(obj.Message.PeerID)
 		message := parseMessage(&obj.Message)
 		from := obj.Message.FromID
 
