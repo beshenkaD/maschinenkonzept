@@ -8,7 +8,7 @@ import (
 	"github.com/beshenkaD/maschinenkonzept/core"
 )
 
-func set(i *core.CommandInput) (string, error) {
+func config(i *core.CommandInput) (string, error) {
 	if len(i.Args) < 2 {
 		return "", errors.New("недостаточно аргументов")
 	}
@@ -70,6 +70,18 @@ func set(i *core.CommandInput) (string, error) {
 	return "", nil
 }
 
+func get(i *core.CommandInput) (string, error) {
+	f := `
+Prefix: %s
+Ignore Invalid: %t
+Disabled commands: %s
+Disabled hooks: %s
+Disabled ticks: %s
+`
+	return fmt.Sprintf(f, i.Chat.Prefix, i.Chat.IgnoreInvalid, i.Chat.DisabledCommands, i.Chat.DisabledHooks, i.Chat.DisabledTicks), nil
+}
+
 func init() {
-	core.RegisterCommand("set", "", nil, set)
+	core.RegisterCommand("config", "", nil, config)
+	core.RegisterCommand("info", "", nil, get)
 }

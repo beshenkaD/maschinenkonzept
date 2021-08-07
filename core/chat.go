@@ -25,6 +25,17 @@ func newChat(ID int) *Chat {
 	}
 }
 
+// TODO add mutex to avoid race conditions
+func (b *Bot) chatGC() {
+	for ID, chat := range b.chats {
+		if time.Since(chat.LastMessage) >= 10*time.Minute {
+			delete(b.chats, ID)
+		}
+	}
+
+	time.Sleep(5 * time.Minute)
+}
+
 func IsCommandExist(name string) bool {
 	_, ok := commands[name]
 	return ok

@@ -185,6 +185,7 @@ func (b *Bot) Run() {
 	}
 
 	go b.startTick()
+	go b.chatGC()
 
 	lp.MessageNew(func(_ context.Context, obj events.MessageNewObject) {
 		chat, ok := b.chats[obj.Message.PeerID]
