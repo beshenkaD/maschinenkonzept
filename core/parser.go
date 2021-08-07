@@ -5,11 +5,11 @@ import (
 	"unicode"
 )
 
-func parse(m *Message, chat *Chat, user *User) (*CommandInput, error) {
+func parse(m *Message, chat *Chat, user *User) *CommandInput {
 	s := strings.TrimSpace(m.Text)
 
 	if !strings.HasPrefix(s, chat.Prefix) {
-		return nil, nil
+		return nil
 	}
 
 	i := &CommandInput{
@@ -21,7 +21,7 @@ func parse(m *Message, chat *Chat, user *User) (*CommandInput, error) {
 	s = strings.TrimSpace(strings.TrimPrefix(s, chat.Prefix))
 
 	if s == "" {
-		return nil, nil
+		return nil
 	}
 
 	firstOccurrence := true
@@ -42,5 +42,5 @@ func parse(m *Message, chat *Chat, user *User) (*CommandInput, error) {
 		i.Args = args
 	}
 
-	return i, nil
+	return i
 }

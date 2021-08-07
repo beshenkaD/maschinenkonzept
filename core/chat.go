@@ -12,6 +12,7 @@ import (
 // TODO: remove inactive chats from bot
 type Chat struct {
 	ID               int
+	Lang             string
 	LastMessage      time.Time
 	IgnoreInvalid    bool
 	Prefix           string

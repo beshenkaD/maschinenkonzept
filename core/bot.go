@@ -65,12 +65,7 @@ func (b *Bot) startTick() {
 func (b *Bot) messageReceived(chat *Chat, message *Message, sender *User) {
 	b.chats[chat.ID] = chat
 
-	input, err := parse(message, chat, sender)
-
-	if err != nil {
-		b.sendMessage(chat, err.Error())
-		return
-	}
+	input := parse(message, chat, sender)
 
 	if input == nil {
 		go b.handleHook(&HookInput{
@@ -82,7 +77,7 @@ func (b *Bot) messageReceived(chat *Chat, message *Message, sender *User) {
 	}
 
 	if chat.IsCommandDisabled(input.Command) {
-		b.sendError(chat, errors.New("Command disabled in this chat"))
+		b.sendError(chat, errors.New(getStrings(chat.Lang).CommandDisabled))
 		return
 	}
 
@@ -119,7 +114,7 @@ func (b *Bot) sendError(chat *Chat, err error) {
 	bu := params.NewMessagesSendBuilder()
 	bu.PeerID(chat.ID)
 	bu.RandomID(0)
-	bu.Message("Ошибка: " + err.Error())
+	bu.Message(getStrings(chat.Lang).Error + err.Error())
 
 	_, e := Vk.MessagesSend(bu.Params)
 
