@@ -20,6 +20,7 @@ var (
 )
 
 type Bot struct {
+	lp    *longpoll.LongPoll
 	chats map[int]*Chat // active chats
 	done  chan struct{}
 }
@@ -178,7 +179,7 @@ func (b *Bot) Run() {
 		log.Fatal(err)
 	}
 
-	lp, err := longpoll.NewLongPoll(Vk, group[0].ID)
+	b.lp, err = longpoll.NewLongPoll(Vk, group[0].ID)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -186,7 +187,7 @@ func (b *Bot) Run() {
 	go b.startTick()
 	go b.chatGC()
 
-	lp.MessageNew(func(_ context.Context, obj events.MessageNewObject) {
+	b.lp.MessageNew(func(_ context.Context, obj events.MessageNewObject) {
 		chat, ok := b.chats[obj.Message.PeerID]
 
 		if !ok {
@@ -202,11 +203,12 @@ func (b *Bot) Run() {
 	})
 
 	log.Println("Start Long Poll (VK)")
-	if err := lp.Run(); err != nil {
+	if err := b.lp.Run(); err != nil {
 		log.Fatal(err)
 	}
 }
 
 func (b *Bot) Stop() {
+	b.lp.Shutdown()
 	close(b.done)
 }

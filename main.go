@@ -1,7 +1,9 @@
 package main
 
 import (
+	"log"
 	"os"
+	"os/signal"
 
 	_ "github.com/beshenkaD/maschinenkonzept/admin"
 	_ "github.com/beshenkaD/maschinenkonzept/config"
@@ -32,6 +34,17 @@ func main() {
 	})
 
 	bot := core.New(os.Getenv("VK_TOKEN"), "/home/beshenka/hueta", true)
+
+	// Handle SIGINT safely
+	c := make(chan os.Signal, 1)
+	signal.Notify(c, os.Interrupt)
+
+	go func() {
+		for range c {
+			log.Println("Safely terminating...")
+			bot.Stop()
+		}
+	}()
 
 	bot.Run()
 }
