@@ -1,6 +1,13 @@
 package core
 
-import "time"
+import (
+	"encoding/json"
+	"log"
+	"os"
+	"path/filepath"
+	"strconv"
+	"time"
+)
 
 // TODO: remove inactive chats from bot
 type Chat struct {
@@ -22,6 +29,29 @@ func newChat(ID int) *Chat {
 		DisabledCommands: make(map[string]bool),
 		DisabledHooks:    make(map[string]bool),
 		DisabledTicks:    make(map[string]bool),
+	}
+}
+
+// Save chat to disk
+func (c *Chat) Save() {
+	bs, _ := json.Marshal(c)
+
+	err := os.WriteFile(filepath.Join(chatsPath, strconv.Itoa(c.ID)+".json"), bs, 0644)
+	if err != nil {
+		log.Println(err.Error())
+	}
+}
+
+// Load chat from disk
+func (c *Chat) Load() {
+	bs, err := os.ReadFile(filepath.Join(chatsPath, strconv.Itoa(c.ID)+".json"))
+	if err != nil {
+		return
+	}
+
+	err = json.Unmarshal(bs, c)
+	if err != nil {
+		return
 	}
 }
 

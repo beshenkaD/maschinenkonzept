@@ -14,7 +14,10 @@ import (
 	"github.com/SevereCloud/vksdk/v2/longpoll-bot"
 )
 
-var Vk *api.VK
+var (
+	Vk        *api.VK
+	chatsPath string
+)
 
 type Bot struct {
 	chats map[int]*Chat // active chats
@@ -22,8 +25,9 @@ type Bot struct {
 }
 
 // TODO: translation support
-func New(token string, debug bool) *Bot {
+func New(token string, configsPath string, debug bool) *Bot {
 	Vk = api.NewVK(token)
+	chatsPath = configsPath
 
 	return &Bot{
 		chats: make(map[int]*Chat),
@@ -193,6 +197,8 @@ func (b *Bot) Run() {
 		if !ok {
 			chat = newChat(obj.Message.PeerID)
 		}
+
+		chat.Load()
 
 		message := Message(obj.Message)
 		sender := b.getUser(obj.Message.FromID)

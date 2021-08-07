@@ -16,6 +16,7 @@ func config(i *core.CommandInput) (string, error) {
 	switch strings.ToLower(i.Args[0]) {
 	case "prefix", "префикс":
 		i.Chat.Prefix = i.Args[1]
+		i.Chat.Save()
 		return "новый префикс установлен", nil
 	case "ignore", "ignoreInvalid", "игнорировать":
 		b := true
@@ -30,7 +31,7 @@ func config(i *core.CommandInput) (string, error) {
 		}
 
 		i.Chat.IgnoreInvalid = b
-
+		i.Chat.Save()
 		return "параметр установлен", nil
 	case "disable", "отключить":
 		if len(i.Args) < 3 {
@@ -63,6 +64,7 @@ func config(i *core.CommandInput) (string, error) {
 				}
 			}
 		}
+		i.Chat.Save()
 	default:
 		return "", errors.New("неправильные аргументы")
 	}

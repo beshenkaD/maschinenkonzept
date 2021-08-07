@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	bot := core.New(os.Getenv("VK_TOKEN"), true)
+	bot := core.New(os.Getenv("VK_TOKEN"), "/home/beshenka/hueta", true)
 
 	bot.Run()
 }
