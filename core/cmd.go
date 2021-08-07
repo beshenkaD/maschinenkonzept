@@ -82,7 +82,7 @@ type TickFunc func(chat *Chat) string
 
 var (
 	commands = make(map[string]*Command)
-	hooks    = make(map[actionType]*Hook)
+	hooks    = make(map[actionType][]*Hook)
 	ticks    = make(map[string]*Tick)
 )
 
@@ -97,12 +97,12 @@ func RegisterCommand(name, trigger, description string, params []HelpParam, cmdF
 }
 
 func RegisterHook(name, description string, action actionType, hookFunc HookFunc) {
-	hooks[action] = &Hook{
+	hooks[action] = append(hooks[action], &Hook{
 		Name:        name,
 		ActionType:  action,
 		Func:        hookFunc,
 		Description: description,
-	}
+	})
 }
 
 func RegisterTick(name, description string, periodicFunc TickFunc) {
@@ -135,24 +135,26 @@ func (b *Bot) handleCommand(i *CommandInput) {
 }
 
 func (b *Bot) handleHook(i *HookInput) {
-	hook := hooks[parseAction(i.Message.Action.Type)]
+	hooks := hooks[parseAction(i.Message.Action.Type)]
 
-	if hook == nil {
+	if len(hooks) == 0 {
 		return
 	}
 
-	if i.Chat.IsHookDisabled(hook.Name) {
-		return
+	for _, hook := range hooks {
+		if i.Chat.IsHookDisabled(hook.Name) {
+			return
+		}
+
+		message, err := hook.Func(i)
+
+		if err != nil {
+			b.sendError(i.Chat, err)
+			return
+		}
+
+		b.sendMessage(i.Chat, message)
 	}
-
-	message, err := hook.Func(i)
-
-	if err != nil {
-		b.sendError(i.Chat, err)
-		return
-	}
-
-	b.sendMessage(i.Chat, message)
 }
 
 func (b *Bot) handleTick(name string, chat *Chat) {
