@@ -13,7 +13,7 @@ type Chat struct {
 	DisabledTicks    map[string]bool
 }
 
-func NewChat(ID int) *Chat {
+func newChat(ID int) *Chat {
 	return &Chat{
 		ID:               ID,
 		LastMessage:      time.Now(),

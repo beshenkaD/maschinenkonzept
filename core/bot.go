@@ -1,32 +1,38 @@
 package core
 
 import (
+	"context"
 	"errors"
+	"log"
+	"math/rand"
+	"strconv"
 	"time"
+
+	"github.com/SevereCloud/vksdk/v2/api"
+	"github.com/SevereCloud/vksdk/v2/api/params"
+	"github.com/SevereCloud/vksdk/v2/events"
+	"github.com/SevereCloud/vksdk/v2/longpoll-bot"
 )
 
-type ResponseHandler func(chatID int, message string)
-type ErrorHandler func(chatID int, err error)
+var Vk *api.VK
 
 type Bot struct {
-	ResponseHandler ResponseHandler
-	ErrorHandler    ErrorHandler
-	Protocol        string  // vk or telegram
-	Chats           []*Chat // active chats
-	done            chan struct{}
+	chats []*Chat // active chats
+	done  chan struct{}
 }
 
-func New(h ResponseHandler, e ErrorHandler, protocol string) *Bot {
-	b := &Bot{
-		ResponseHandler: h,
-		ErrorHandler:    e,
-		Protocol:        protocol,
-		done:            make(chan struct{}),
+// TODO: translation support
+func New(token string, debug bool) *Bot {
+	Vk = api.NewVK(token)
+
+	return &Bot{
+		chats: []*Chat{},
+		done:  make(chan struct{}),
 	}
+}
 
-	go b.startTick()
-
-	return b
+func init() {
+	rand.Seed(time.Now().UnixNano())
 }
 
 func (b *Bot) IsRunning() bool {
@@ -42,7 +48,7 @@ func (b *Bot) IsRunning() bool {
 
 func (b *Bot) startTick() {
 	for b.IsRunning() {
-		for _, chat := range b.Chats {
+		for _, chat := range b.chats {
 			for tick := range ticks {
 				go b.handleTick(tick, chat)
 			}
@@ -52,28 +58,27 @@ func (b *Bot) startTick() {
 	}
 }
 
-func (b *Bot) MessageReceived(chat *Chat, message *Message, sender *User) {
-	b.Chats = append(b.Chats, chat)
+func (b *Bot) messageReceived(chat *Chat, message *Message, sender *User) {
+	b.chats = append(b.chats, chat)
 
 	input, err := parse(message, chat, sender)
 
 	if err != nil {
-		b.SendMessage(chat, err.Error())
+		b.sendMessage(chat, err.Error())
 		return
 	}
 
 	if input == nil {
 		go b.handleHook(&HookInput{
-			Raw:         message.Text,
-			MessageData: message,
-			Chat:        chat,
-			User:        sender,
+			Message: message,
+			Chat:    chat,
+			User:    sender,
 		})
 		return
 	}
 
 	if chat.IsCommandDisabled(input.Command) {
-		b.ErrorHandler(chat.ID, errors.New("Command disabled in this chat"))
+		b.sendError(chat, errors.New("Command disabled in this chat"))
 		return
 	}
 
@@ -85,12 +90,114 @@ func (b *Bot) MessageReceived(chat *Chat, message *Message, sender *User) {
 	}
 }
 
-func (b *Bot) SendMessage(chat *Chat, message string) {
+func (b *Bot) sendMessage(chat *Chat, message string) {
 	if message == "" {
 		return
 	}
 
-	b.ResponseHandler(chat.ID, message)
+	bu := params.NewMessagesSendBuilder()
+	bu.PeerID(chat.ID)
+	bu.RandomID(0)
+	bu.Message(message)
+
+	_, err := Vk.MessagesSend(bu.Params)
+
+	if err != nil {
+		log.Println(err.Error())
+	}
+}
+
+func (b *Bot) sendError(chat *Chat, err error) {
+	if err == nil {
+		return
+	}
+
+	bu := params.NewMessagesSendBuilder()
+	bu.PeerID(chat.ID)
+	bu.RandomID(0)
+	bu.Message("Ошибка: " + err.Error())
+
+	_, e := Vk.MessagesSend(bu.Params)
+
+	if e != nil {
+		log.Println(err.Error())
+	}
+}
+
+func (b *Bot) getUser(ID int) *User {
+	if ID < 0 {
+		bu := params.NewGroupsGetByIDBuilder()
+		bu.GroupID(strconv.Itoa(ID))
+		bu.Lang(0)
+
+		bot, err := Vk.GroupsGetByID(bu.Params)
+
+		if err != nil {
+			return &User{
+				ID:        ID,
+				FirstName: "",
+				LastName:  "",
+				IsBot:     true,
+			}
+		}
+
+		return &User{
+			ID:        ID,
+			FirstName: bot[0].Name,
+			LastName:  "",
+			IsBot:     true,
+		}
+	}
+
+	bu := params.NewUsersGetBuilder()
+	bu.Lang(0)
+	bu.UserIDs([]string{strconv.Itoa(ID)})
+
+	users, err := Vk.UsersGet(bu.Params)
+
+	if err != nil {
+		return &User{
+			ID:        ID,
+			FirstName: "",
+			LastName:  "",
+			IsBot:     false,
+		}
+	}
+
+	return &User{
+		ID:        ID,
+		FirstName: users[0].FirstName,
+		LastName:  users[0].LastName,
+		IsBot:     false,
+	}
+}
+
+func (b *Bot) Run() {
+	group, err := Vk.GroupsGetByID(nil)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	lp, err := longpoll.NewLongPoll(Vk, group[0].ID)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	go b.startTick()
+
+	lp.MessageNew(func(_ context.Context, obj events.MessageNewObject) {
+		chat := newChat(obj.Message.PeerID)
+		message := Message(obj.Message)
+		sender := b.getUser(obj.Message.FromID)
+
+		b.messageReceived(chat, &message, sender)
+	})
+
+	log.Println("Start Long Poll (VK)")
+	if err := lp.Run(); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func (b *Bot) Stop() {

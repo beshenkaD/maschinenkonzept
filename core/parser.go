@@ -14,11 +14,13 @@ func parse(m *Message, chat *Chat, user *User) (*CommandInput, error) {
 
 	i := &CommandInput{
 		Chat:    chat,
-		Message: strings.TrimSpace(strings.TrimPrefix(s, chat.Prefix)),
+		Message: m,
 		User:    user,
 	}
 
-	if i.Message == "" {
+	s = strings.TrimSpace(strings.TrimPrefix(s, chat.Prefix))
+
+	if s == "" {
 		return nil, nil
 	}
 
@@ -31,7 +33,7 @@ func parse(m *Message, chat *Chat, user *User) (*CommandInput, error) {
 		return isFirstSpace
 	}
 
-	pieces := strings.FieldsFunc(i.Message, firstUnicodeSpace)
+	pieces := strings.FieldsFunc(s, firstUnicodeSpace)
 	i.Command = strings.ToLower(pieces[0])
 
 	if len(pieces) > 1 {
@@ -39,9 +41,6 @@ func parse(m *Message, chat *Chat, user *User) (*CommandInput, error) {
 
 		i.Args = args
 	}
-
-	m.Text = i.Message
-	i.MessageData = m
 
 	return i, nil
 }

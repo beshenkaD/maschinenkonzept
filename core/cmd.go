@@ -1,41 +1,35 @@
 package core
 
-import "errors"
+import (
+	"errors"
 
-// Parsed user input (used for commands)
-type CommandInput struct {
-	Message     string   // Full string without prefix
-	MessageData *Message // Extra data about message
-	Command     string   // First argument passed to the bot
-	Args        []string // Arguments
-	Chat        *Chat    // Chat where the command was called
-	User        *User    // User who sent the message
-}
+	"github.com/SevereCloud/vksdk/v2/object"
+)
 
-// User input for hooks
-type HookInput struct {
-	Raw         string   // Raw user message
-	MessageData *Message // Extra data about message
-	Chat        *Chat    // Chat where message was sent
-	User        *User    // User who sent the message
-}
-
-// TODO: handle telegram actions
-type Message struct {
-	Text         string     // Actual text
-	ActionType   string     // https://vk.com/dev/objects/message look at action object
-	MemberId     int        // Vk specific thing
-	ActionText   string     // Vk specific thing
-	FwdMessages  []*Message // Forward messages (if any)
-	ReplyMessage *Message   // Reply message
-	IsPrivate    bool
-}
+// TODO: create more convinient structure for message
+type Message object.MessagesMessage
 
 type User struct {
 	ID        int
 	FirstName string
 	LastName  string
 	IsBot     bool
+}
+
+// Parsed user input (used for commands)
+type CommandInput struct {
+	Command string   // First argument passed to the bot
+	Args    []string // Arguments
+	Message *Message // Raw message
+	Chat    *Chat    // Chat where the command was called
+	User    *User    // User who sent the message
+}
+
+// User input for hooks
+type HookInput struct {
+	Message *Message // Raw message
+	Chat    *Chat    // Chat where message was sent
+	User    *User    // User who sent the message
 }
 
 type HelpParam struct {
@@ -56,17 +50,26 @@ type Command struct {
 }
 
 // A hook is a passive command that is called by some event, or every time the bot receives a message
-// The list of available action types can be found here: https://vk.com/dev/objects/message (action object)
-// If you want the hook to be called on every message you must add a custom action type
-// TODO: handle telegram events
+// List of available action types:
+// - ActionNewMessage
+// - ActionPhotoUpdate
+// - ActionPhotoRemove
+// - ActionChatCreate
+// - ActionTitleUpdate
+// - ActionInviteUser
+// - ActionKickUser
+// - ActionPinMessage
+// - ActionUnpinMessage
+// - ActionInviteByLink
+
 type Hook struct {
 	Name        string
-	ActionType  string
+	ActionType  actionType
 	Func        HookFunc
 	Description string
 }
 
-// Tick is a passive command that is executed every 5 seconds
+// Tick is a passive command that is executed every 5 seconds only in active chats
 type Tick struct {
 	Name        string
 	Func        TickFunc
@@ -79,12 +82,12 @@ type TickFunc func(chat *Chat) string
 
 var (
 	commands = make(map[string]*Command)
-	hooks    = make(map[string]*Hook)
+	hooks    = make(map[actionType]*Hook)
 	ticks    = make(map[string]*Tick)
 )
 
 func RegisterCommand(name, trigger, description string, params []HelpParam, cmdFunc CmdFunc) {
-	commands[name] = &Command{
+	commands[trigger] = &Command{
 		Name:        name,
 		Trigger:     trigger,
 		Func:        cmdFunc,
@@ -93,7 +96,7 @@ func RegisterCommand(name, trigger, description string, params []HelpParam, cmdF
 	}
 }
 
-func RegisterHook(name, action, description string, hookFunc HookFunc) {
+func RegisterHook(name, description string, action actionType, hookFunc HookFunc) {
 	hooks[action] = &Hook{
 		Name:        name,
 		ActionType:  action,
@@ -115,24 +118,24 @@ func (b *Bot) handleCommand(i *CommandInput) {
 
 	if cmd == nil {
 		if !i.Chat.IgnoreInvalid {
-			b.ErrorHandler(i.Chat.ID, errors.New("invalid command"))
+			b.sendError(i.Chat, errors.New("invalid command"))
 		}
 		return
 	}
 
 	message, err := cmd.Func(i)
 	if err != nil {
-		b.ErrorHandler(i.Chat.ID, err)
+		b.sendError(i.Chat, err)
 		return
 	}
 
 	if message != "" {
-		b.SendMessage(i.Chat, message)
+		b.sendMessage(i.Chat, message)
 	}
 }
 
 func (b *Bot) handleHook(i *HookInput) {
-	hook := hooks[i.MessageData.ActionType]
+	hook := hooks[parseAction(i.Message.Action.Type)]
 
 	if hook == nil {
 		return
@@ -145,13 +148,11 @@ func (b *Bot) handleHook(i *HookInput) {
 	message, err := hook.Func(i)
 
 	if err != nil {
-		b.ErrorHandler(i.Chat.ID, err)
+		b.sendError(i.Chat, err)
 		return
 	}
 
-	if message != "" {
-		b.SendMessage(i.Chat, message)
-	}
+	b.sendMessage(i.Chat, message)
 }
 
 func (b *Bot) handleTick(name string, chat *Chat) {
@@ -167,7 +168,5 @@ func (b *Bot) handleTick(name string, chat *Chat) {
 
 	message := tick.Func(chat)
 
-	if message != "" {
-		b.SendMessage(chat, message)
-	}
+	b.sendMessage(chat, message)
 }

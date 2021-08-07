@@ -44,7 +44,7 @@ func (b *Bot) help(i *CommandInput) {
 
 func (b *Bot) showHelp(i *CommandInput, help *Command) {
 	if help.Description != "" {
-		b.SendMessage(i.Chat, fmt.Sprintf(helpDescripton, help.Description))
+		b.sendMessage(i.Chat, fmt.Sprintf(helpDescripton, help.Description))
 	}
 
 	var args string
@@ -52,7 +52,7 @@ func (b *Bot) showHelp(i *CommandInput, help *Command) {
 		args += param.Name + " "
 	}
 
-	b.SendMessage(i.Chat, fmt.Sprintf(helpUsage, i.Chat.Prefix, i.Command, args))
+	b.sendMessage(i.Chat, fmt.Sprintf(helpUsage, i.Chat.Prefix, i.Command, args))
 }
 
 func (b *Bot) showAvailableCommands(chat *Chat) {
@@ -62,6 +62,6 @@ func (b *Bot) showAvailableCommands(chat *Chat) {
 		cmds = append(cmds, k)
 	}
 
-	b.SendMessage(chat, fmt.Sprintf(helpAboutCommand, chat.Prefix))
-	b.SendMessage(chat, fmt.Sprintf(availableCommands, strings.Join(cmds, ", ")))
+	b.sendMessage(chat, fmt.Sprintf(helpAboutCommand, chat.Prefix))
+	b.sendMessage(chat, fmt.Sprintf(availableCommands, strings.Join(cmds, ", ")))
 }
