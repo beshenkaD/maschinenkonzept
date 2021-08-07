@@ -33,6 +33,11 @@ func config(i *core.CommandInput) (string, error) {
 		i.Chat.IgnoreInvalid = b
 		i.Chat.Save()
 		return "параметр установлен", nil
+	case "language", "lang", "язык":
+		i.Chat.Lang = i.Args[1]
+		i.Chat.Save()
+
+		return "параметр установлен", nil
 	case "disable", "отключить":
 		if len(i.Args) < 3 {
 			return "", errors.New("недостаточно аргументов")
@@ -75,12 +80,13 @@ func config(i *core.CommandInput) (string, error) {
 func get(i *core.CommandInput) (string, error) {
 	f := `
 Prefix: %s
+Language: %s
 Ignore Invalid: %t
 Disabled commands: %s
 Disabled hooks: %s
 Disabled ticks: %s
 `
-	return fmt.Sprintf(f, i.Chat.Prefix, i.Chat.IgnoreInvalid, i.Chat.DisabledCommands, i.Chat.DisabledHooks, i.Chat.DisabledTicks), nil
+	return fmt.Sprintf(f, i.Chat.Prefix, i.Chat.Lang, i.Chat.IgnoreInvalid, i.Chat.DisabledCommands, i.Chat.DisabledHooks, i.Chat.DisabledTicks), nil
 }
 
 func init() {
