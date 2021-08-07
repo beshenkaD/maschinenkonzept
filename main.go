@@ -5,6 +5,7 @@ import (
 
 	_ "github.com/beshenkaD/maschinenkonzept/admin"
 	"github.com/beshenkaD/maschinenkonzept/core"
+	_ "github.com/beshenkaD/maschinenkonzept/me"
 	_ "github.com/beshenkaD/maschinenkonzept/ping"
 )
 

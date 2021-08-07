@@ -13,6 +13,6 @@ func init() {
 		"ping",
 		"ping",
 		"alive?",
-		[]core.HelpParam{},
+		nil,
 		ping)
 }
