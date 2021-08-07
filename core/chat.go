@@ -25,6 +25,33 @@ func newChat(ID int) *Chat {
 	}
 }
 
+func IsCommandExist(name string) bool {
+	_, ok := commands[name]
+	return ok
+}
+
+func IsHookExist(name string) bool {
+	for _, hooks := range hooks {
+		for _, hook := range hooks {
+			if hook.Name == name {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+func IsTickExist(name string) bool {
+	for _, tick := range ticks {
+		if tick.Name == name {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (c *Chat) IsCommandDisabled(name string) bool {
 	t, ok := c.DisabledCommands[name]
 

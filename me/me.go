@@ -22,7 +22,6 @@ func me(i *core.CommandInput) (string, error) {
 
 func init() {
 	core.RegisterCommand(
-		"Me",
 		"me",
 		"me command lol",
 		nil,

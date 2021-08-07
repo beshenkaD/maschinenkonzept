@@ -6,7 +6,6 @@ import (
 
 func init() {
 	core.RegisterCommand(
-		"Kick",
 		"kick",
 		"Kick user from conferention",
 		[]core.HelpParam{

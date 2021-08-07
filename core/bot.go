@@ -17,7 +17,7 @@ import (
 var Vk *api.VK
 
 type Bot struct {
-	chats []*Chat // active chats
+	chats map[int]*Chat // active chats
 	done  chan struct{}
 }
 
@@ -26,7 +26,7 @@ func New(token string, debug bool) *Bot {
 	Vk = api.NewVK(token)
 
 	return &Bot{
-		chats: []*Chat{},
+		chats: make(map[int]*Chat),
 		done:  make(chan struct{}),
 	}
 }
@@ -59,7 +59,7 @@ func (b *Bot) startTick() {
 }
 
 func (b *Bot) messageReceived(chat *Chat, message *Message, sender *User) {
-	b.chats = append(b.chats, chat)
+	b.chats[chat.ID] = chat
 
 	input, err := parse(message, chat, sender)
 
@@ -187,7 +187,12 @@ func (b *Bot) Run() {
 	go b.startTick()
 
 	lp.MessageNew(func(_ context.Context, obj events.MessageNewObject) {
-		chat := newChat(obj.Message.PeerID)
+		chat, ok := b.chats[obj.Message.PeerID]
+
+		if !ok {
+			chat = newChat(obj.Message.PeerID)
+		}
+
 		message := Message(obj.Message)
 		sender := b.getUser(obj.Message.FromID)
 

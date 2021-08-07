@@ -42,7 +42,6 @@ type HelpParam struct {
 // Example: /ping
 // The command can have arguments. All arguments must be described in the Params array
 type Command struct {
-	Name        string
 	Trigger     string
 	Func        CmdFunc
 	Description string
@@ -86,9 +85,8 @@ var (
 	ticks    = make(map[string]*Tick)
 )
 
-func RegisterCommand(name, trigger, description string, params []HelpParam, cmdFunc CmdFunc) {
+func RegisterCommand(trigger, description string, params []HelpParam, cmdFunc CmdFunc) {
 	commands[trigger] = &Command{
-		Name:        name,
 		Trigger:     trigger,
 		Func:        cmdFunc,
 		Description: description,
