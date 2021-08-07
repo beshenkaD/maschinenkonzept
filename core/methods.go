@@ -56,6 +56,37 @@ func GetInviteLink(chat *Chat, reset bool) (string, error) {
 	return a.Link, err
 }
 
+type item struct {
+	MemberID  int
+	InvitedBy int
+	JoinDate  int
+	IsAdmin   bool
+}
+
+func GetConversationMembers(chat *Chat) ([]item, error) {
+	b := params.NewMessagesGetConversationMembersBuilder()
+	b.PeerID(chat.ID)
+
+	r, err := Vk.MessagesGetConversationMembers(b.Params)
+
+	if err != nil {
+		return nil, err
+	}
+
+	var items []item
+
+	for _, i := range r.Items {
+		items = append(items, item{
+			MemberID:  i.MemberID,
+			InvitedBy: i.InvitedBy,
+			JoinDate:  i.JoinDate,
+			IsAdmin:   bool(i.IsAdmin),
+		})
+	}
+
+	return items, nil
+}
+
 func DeleteMessages(chat *Chat, messageIds []int) error {
 	_, err := Vk.MessagesDelete(api.Params{
 		"delete_for_all":           true,
@@ -78,6 +109,14 @@ func RenameChat(chat *Chat, title string) error {
 	return nil
 }
 
-func GetChat(chats ...*Chat) (int, string) {
-	return 0, ""
+func GetChat(chat *Chat) (string, error) {
+	r, err := Vk.MessagesGetChat(api.Params{
+		"chat_id": chat.ID - 2000000000,
+	})
+
+	if err != nil {
+		return "", err
+	}
+
+	return r.Title, nil
 }

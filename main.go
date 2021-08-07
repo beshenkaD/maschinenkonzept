@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 
+	_ "github.com/beshenkaD/maschinenkonzept/admin"
 	"github.com/beshenkaD/maschinenkonzept/core"
 	_ "github.com/beshenkaD/maschinenkonzept/ping"
 )
