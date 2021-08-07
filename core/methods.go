@@ -2,6 +2,7 @@ package core
 
 import (
 	"math/rand"
+	"os"
 
 	"github.com/SevereCloud/vksdk/v2/api"
 	"github.com/SevereCloud/vksdk/v2/api/params"
@@ -19,7 +20,19 @@ func SendMessage(chat *Chat, message string, attachment string, attachmentPath s
 	}
 
 	if attachmentPath != "" {
-		// TODO
+		file, err := os.Open(attachmentPath)
+		if err != nil {
+			return err
+		}
+
+		defer file.Close()
+
+		photo, err := Vk.UploadMessagesPhoto(chat.ID, file)
+		if err != nil {
+			return err
+		}
+
+		b.Attachment(photo)
 	}
 
 	if replyTo != nil {
