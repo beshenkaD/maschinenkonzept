@@ -115,9 +115,9 @@ func get(i *core.CommandInput) (string, error) {
 Prefix: %s
 Language: %s
 Ignore Invalid: %t
-Disabled commands: %s
-Disabled hooks: %s
-Disabled ticks: %s
+Disabled commands: %v
+Disabled hooks: %v
+Disabled ticks: %v
 `
 	return fmt.Sprintf(f, i.Chat.Prefix, i.Chat.Lang, i.Chat.IgnoreInvalid, i.Chat.DisabledCommands, i.Chat.DisabledHooks, i.Chat.DisabledTicks), nil
 }
