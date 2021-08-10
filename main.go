@@ -10,6 +10,7 @@ import (
 	"github.com/beshenkaD/maschinenkonzept/core"
 	_ "github.com/beshenkaD/maschinenkonzept/me"
 	_ "github.com/beshenkaD/maschinenkonzept/ping"
+	_ "github.com/beshenkaD/maschinenkonzept/quote"
 )
 
 func main() {
