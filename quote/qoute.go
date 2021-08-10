@@ -8,7 +8,6 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
@@ -17,59 +16,24 @@ import (
 	"github.com/cavaliercoder/grab"
 	"github.com/fogleman/gg"
 	"github.com/golang/freetype/truetype"
+	"golang.org/x/image/font"
 	"golang.org/x/image/font/gofont/goregular"
+	// "github.com/golang/freetype/truetype"
+	// "golang.org/x/image/font/gofont/goregular"
 )
 
-func generateLines(s string) []string {
-	const perLine = 6
+const (
+	fontSize = 20
+	// Image must always be 800 pixels wide, but height may vary
+	width     = 700
+	minHeight = 400
+)
 
-	s = strings.TrimSpace(s)
-	s = strings.ReplaceAll(s, "\n", " ")
-	words := strings.Split(s, " ")
+var (
+	face = getFontFace()
+)
 
-	lines := make([]string, len(words)/(perLine+1)+1)
-
-	current := 0
-	line := 0
-	for _, word := range words {
-		if current == perLine {
-			current = 0
-			line++
-			lines[line] += word + " "
-		} else {
-			lines[line] += word + " "
-			current++
-		}
-	}
-
-	lines[0] = "«" + lines[0]
-	lines[len(lines)-1] = strings.TrimSpace(lines[len(lines)-1]) + "»"
-
-	return lines
-}
-
-func calculateHeight(fontSize, spacing, linesCount int) int {
-	const min = 400
-
-	h := ((fontSize + 5) * linesCount) + 5
-
-	if h < min {
-		return min
-	}
-
-	return h
-}
-
-func calculateStringWidth(s string, fontSize int) int {
-	return len(s) * fontSize
-}
-
-func generateQuote(photo image.Image, name, quote string, bg, fg color.Color) string {
-	lines := generateLines(quote)
-
-	const fontSize = 20
-	const spacing = 20
-
+func getFontFace() font.Face {
 	font, err := truetype.Parse(goregular.TTF)
 	if err != nil {
 		log.Fatal(err)
@@ -77,31 +41,98 @@ func generateQuote(photo image.Image, name, quote string, bg, fg color.Color) st
 
 	face := truetype.NewFace(font, &truetype.Options{Size: fontSize})
 
-	const W = 800
-	H := calculateHeight(fontSize, spacing, len(lines))
+	return face
+}
 
-	dc := gg.NewContext(W, H)
+func getPhotoPoint(height int) (x, y int) {
+	return width / 6, height - 200
+}
 
+func getNamePoint(height int) (x, y int) {
+	return 15, height - 40
+}
+
+func getStringWidth(s string) int {
+	w := 0
+	for _, r := range s {
+		_, a, _ := face.GlyphBounds(r)
+		w += a.Round()
+	}
+
+	return w
+}
+
+func getStringHeight() int {
+	return face.Metrics().Height.Ceil()
+}
+
+func getLinesHeight(lines []string) int {
+	h := (len(lines) * (getStringHeight() + 2))
+	if h < minHeight {
+		return minHeight
+	}
+
+	return h
+}
+
+func getLines(s string, w int) []string {
+	var lines []string
+	for _, line := range strings.Split(s, "\n") {
+		var newLine string
+		for _, word := range strings.Split(line, " ") {
+			if getStringWidth(newLine+" "+word) > (width - w - 20) {
+				lines = append(lines, newLine)
+				newLine = word
+			} else {
+				newLine = newLine + " " + word
+			}
+		}
+
+		newLine = strings.TrimSpace(newLine)
+		lines = append(lines, newLine)
+		newLine = ""
+	}
+
+	lines[0] = "«" + lines[0]
+	lines[len(lines)-1] = lines[len(lines)-1] + "»"
+
+	return lines
+}
+
+func renderRainbowText(ct *gg.Context, textPoint int, s string) {
+
+}
+
+func GenerateQuote(photo image.Image, name, quote string, bg, fg color.Color) (path string) {
+	const textPoint = width / 3
+
+	lines := getLines(quote, textPoint)
+
+	height := getLinesHeight(lines)
+
+	dc := gg.NewContext(width, height)
 	dc.SetFontFace(face)
 	dc.SetColor(bg)
 	dc.Clear()
 	dc.SetColor(fg)
 
 	for i, line := range lines {
-		y := H/2 - spacing*len(lines)/2 + i*spacing
-		dc.DrawStringAnchored(line, W/3+W/3, float64(y), 0.5, 0.5)
+		y := height/2 - fontSize*len(lines)/2 + i*fontSize
+		dc.DrawString(line, textPoint, float64(y))
 	}
 
-	dc.DrawStringAnchored(name, W/7, float64(H-30), 0.5, 0.5)
+	nx, ny := getNamePoint(height)
+	dc.DrawString(name, float64(nx), float64(ny))
 
-	dc.DrawEllipse(W/7, float64(H/2), 100, 100)
+	px, py := getPhotoPoint(height)
+	dc.DrawEllipse(float64(px), float64(py), 100, 100)
 	dc.Clip()
-	dc.DrawImageAnchored(photo, W/7, H/2, 0.5, 0.5)
+	dc.DrawImageAnchored(photo, px, py, 0.5, 0.5)
 
-	path := filepath.Join(os.TempDir(), strconv.Itoa(int(time.Now().UnixNano()))+".png")
-	dc.SavePNG(path)
+	out := filepath.Join(os.TempDir(), time.Now().String()+`.png`)
+	dc.SavePNG(out)
 
-	return path
+	return out
 }
 
 func quote(i *core.CommandInput) (string, error) {
@@ -146,7 +177,6 @@ func quote(i *core.CommandInput) (string, error) {
 	}
 
 	resp, err := grab.Get(os.TempDir(), photoURL)
-
 	if err != nil {
 		return "", err
 	}
@@ -172,9 +202,9 @@ func quote(i *core.CommandInput) (string, error) {
 		}
 	}
 
-	quotePath := generateQuote(photo, name, i.Message.ReplyMessage.Text, bg, fg)
+	quotePath := GenerateQuote(photo, name, i.Message.ReplyMessage.Text, bg, fg)
 
-	err = core.SendMessage(i.Chat, "Вот ваша цитата", "", quotePath, nil)
+	err = core.SendMessage(i.Chat, "", "", quotePath, nil)
 
 	os.Remove(quotePath)
 
