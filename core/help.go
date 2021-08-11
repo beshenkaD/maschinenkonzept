@@ -22,7 +22,7 @@ func (b *Bot) help(i *CommandInput) {
 
 	in := parse(msg, i.Chat, i.User)
 
-	s := fmt.Sprintf("%s version %s\n\nВведите %shelp <command> чтобы получить детальное описание команды.\n\n", b.Name, b.Version, i.Chat.Prefix)
+	s := fmt.Sprintf("%s version %s\n\nВведите `%shelp <command>` чтобы получить детальное описание команды.\n\n", b.Name, b.Version, i.Chat.Prefix)
 	s += getAvailableCommands(i.Chat)
 
 	if in == nil {
