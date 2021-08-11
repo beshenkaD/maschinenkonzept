@@ -14,7 +14,8 @@ import (
 )
 
 func main() {
-	bot := core.New(os.Getenv("VK_TOKEN"), "/home/beshenka/hueta", "0.5.2-alpha", true)
+	Version := "0.6.3-alpha"
+	bot := core.New(os.Getenv("VK_TOKEN"), "/home/beshenka/hueta", Version, true)
 
 	// Handle SIGINT safely
 	c := make(chan os.Signal, 1)
