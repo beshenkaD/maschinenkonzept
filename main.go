@@ -43,7 +43,12 @@ func main() {
 	go func() {
 		for range c {
 			log.Println("Safely terminating...")
-			bot.Stop()
+
+			if bot != nil {
+				bot.Stop()
+			} else {
+				os.Exit(0)
+			}
 		}
 	}()
 
