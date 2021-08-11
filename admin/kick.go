@@ -66,7 +66,7 @@ func kick(i *core.CommandInput) (string, error) {
 					return "", err
 				}
 			} else {
-				return "", errors.New("invalid argument: " + `"` + arg + `"`)
+				return "", errors.New("Неправильный аргумент: " + `"` + arg + `"`)
 			}
 		}
 		return "", nil
@@ -79,5 +79,5 @@ func kick(i *core.CommandInput) (string, error) {
 		}
 	}
 
-	return "", errors.New("вы не передали никаких аргументов")
+	return "", errors.New("вы не передали никаких аргументов и не ответили ни на какое сообщение")
 }

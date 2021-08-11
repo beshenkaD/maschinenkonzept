@@ -1,7 +1,7 @@
 package quote
 
 import (
-	"errors"
+	"fmt"
 	"image"
 	"image/color"
 	"os"
@@ -321,18 +321,16 @@ func quote(i *core.CommandInput) (string, error) {
 		}
 		self = ID == i.User.ID
 	} else {
-		return "ПОШЕЛ НАХУЙ", nil
+		return "", nil
 	}
 
+	// TODO: do not throw this error to chat
 	resp, err := grab.Get(os.TempDir(), photoURL)
 	if err != nil {
 		return "", err
 	}
 
-	photo, err := gg.LoadImage(resp.Filename)
-	if err != nil {
-		return "", err
-	}
+	photo, _ := gg.LoadImage(resp.Filename)
 
 	var (
 		mode quoteMode
@@ -347,7 +345,7 @@ func quote(i *core.CommandInput) (string, error) {
 		case "rainbow":
 			mode = rainbowMode
 		default:
-			return "", errors.New("a")
+			return "", fmt.Errorf("неправильный аргумент: %s", i.Args[0])
 		}
 	}
 

@@ -43,7 +43,7 @@ func getHelp(i *CommandInput, help *Command) string {
 	s := fmt.Sprintf("%s: %s\n", help.Trigger, help.Description)
 
 	if len(help.Params) != 0 {
-		s += "Аргументы:\n\n"
+		s += "\nАргументы:\n"
 	}
 
 	for _, param := range help.Params {
