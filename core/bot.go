@@ -20,19 +20,22 @@ var (
 )
 
 type Bot struct {
-	lp    *longpoll.LongPoll
-	chats map[int]*Chat // active chats
-	done  chan struct{}
+	lp      *longpoll.LongPoll
+	chats   map[int]*Chat // active chats
+	done    chan struct{}
+	Version string
+	Name    string
 }
 
 // TODO: translation support
-func New(token string, configsPath string, debug bool) *Bot {
+func New(token string, configsPath, version string, debug bool) *Bot {
 	Vk = api.NewVK(token)
 	chatsPath = configsPath
 
 	return &Bot{
-		chats: make(map[int]*Chat),
-		done:  make(chan struct{}),
+		chats:   make(map[int]*Chat),
+		Version: version,
+		done:    make(chan struct{}),
 	}
 }
 
@@ -78,7 +81,7 @@ func (b *Bot) messageReceived(chat *Chat, message *Message, sender *User) {
 	}
 
 	if chat.IsCommandDisabled(input.Command) {
-		b.sendError(chat, errors.New(getStrings(chat.Lang).CommandDisabled))
+		b.sendError(chat, errors.New("команда отключена в этом чате"))
 		return
 	}
 
@@ -115,7 +118,7 @@ func (b *Bot) sendError(chat *Chat, err error) {
 	bu := params.NewMessagesSendBuilder()
 	bu.PeerID(chat.ID)
 	bu.RandomID(0)
-	bu.Message(getStrings(chat.Lang).Error + err.Error())
+	bu.Message("Ошибка: " + err.Error())
 
 	_, e := Vk.MessagesSend(bu.Params)
 
@@ -178,6 +181,8 @@ func (b *Bot) Run() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	b.Name = group[0].Name
 
 	b.lp, err = longpoll.NewLongPoll(Vk, group[0].ID)
 	if err != nil {

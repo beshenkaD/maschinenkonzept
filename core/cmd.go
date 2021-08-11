@@ -116,7 +116,7 @@ func (b *Bot) handleCommand(i *CommandInput) {
 
 	if cmd == nil {
 		if !i.Chat.IgnoreInvalid {
-			b.sendError(i.Chat, errors.New(getStrings(i.Chat.Lang).InvalidCommand))
+			b.sendError(i.Chat, errors.New("неправильная команда"))
 		}
 		return
 	}

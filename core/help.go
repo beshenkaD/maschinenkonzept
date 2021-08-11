@@ -9,9 +9,6 @@ const (
 	helpCommand = "help"
 )
 
-/*
- */
-
 func (b *Bot) help(i *CommandInput) {
 	var args string
 
@@ -25,40 +22,52 @@ func (b *Bot) help(i *CommandInput) {
 
 	in := parse(msg, i.Chat, i.User)
 
+	s := fmt.Sprintf("%s version %s\n\nВведите %shelp <command> чтобы получить детальное описание команды.\n\n", b.Name, b.Version, i.Chat.Prefix)
+	s += getAvailableCommands(i.Chat)
+
 	if in == nil {
-		b.showAvailableCommands(i.Chat)
+		b.sendMessage(i.Chat, s)
 		return
 	}
 
 	command := commands[in.Command]
 	if command == nil {
-		b.showAvailableCommands(i.Chat)
+		b.sendMessage(i.Chat, s)
 		return
 	}
 
-	b.showHelp(in, command)
+	b.sendMessage(i.Chat, getHelp(in, command))
 }
 
-func (b *Bot) showHelp(i *CommandInput, help *Command) {
-	if help.Description != "" {
-		b.sendMessage(i.Chat, fmt.Sprintf(getStrings(i.Chat.Lang).HelpDescription, help.Description))
+func getHelp(i *CommandInput, help *Command) string {
+	s := fmt.Sprintf("%s: %s\n", help.Trigger, help.Description)
+
+	if len(help.Params) != 0 {
+		s += "Аргументы:\n"
 	}
 
-	var args string
 	for _, param := range help.Params {
-		args += param.Name + " "
+		optional := "[Обязательный]"
+
+		if param.Optional {
+			optional = ""
+		}
+
+		s += fmt.Sprintf("-- %s: %s %s\n", param.Name, param.Description, optional)
 	}
 
-	b.sendMessage(i.Chat, fmt.Sprintf(getStrings(i.Chat.Lang).HelpUsage, i.Chat.Prefix, i.Command, args))
+	return s
 }
 
-func (b *Bot) showAvailableCommands(chat *Chat) {
+func getAvailableCommands(chat *Chat) string {
 	var cmds []string
 
 	for k := range commands {
+		if chat.IsCommandDisabled(k) {
+			k += " [Отключена]"
+		}
 		cmds = append(cmds, k)
 	}
 
-	b.sendMessage(chat, fmt.Sprintf(getStrings(chat.Lang).HelpAboutCommand, chat.Prefix))
-	b.sendMessage(chat, fmt.Sprintf(getStrings(chat.Lang).HelpAvailableCommands, strings.Join(cmds, ", ")))
+	return fmt.Sprintf("Доступные команды: %v", strings.Join(cmds, ", "))
 }
