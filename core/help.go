@@ -53,7 +53,7 @@ func getHelp(i *CommandInput, help *Command) string {
 			optional = ""
 		}
 
-		s += fmt.Sprintf("-- %s: %s %s\n", param.Name, param.Description, optional)
+		s += fmt.Sprintf("-- %s: %s %s\n\n", param.Name, param.Description, optional)
 	}
 
 	return s

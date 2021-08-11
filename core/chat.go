@@ -12,7 +12,6 @@ import (
 // TODO: remove inactive chats from bot
 type Chat struct {
 	ID               int
-	Lang             string
 	LastMessage      time.Time
 	IgnoreInvalid    bool
 	Prefix           string
@@ -31,6 +30,10 @@ func newChat(ID int) *Chat {
 		DisabledHooks:    make(map[string]bool),
 		DisabledTicks:    make(map[string]bool),
 	}
+}
+
+func (c *Chat) IsPrivate() bool {
+	return c.ID < 2000000000
 }
 
 // Save chat to disk

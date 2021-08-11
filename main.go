@@ -6,11 +6,11 @@ import (
 	"os/signal"
 
 	_ "github.com/beshenkaD/maschinenkonzept/admin"
-	_ "github.com/beshenkaD/maschinenkonzept/config"
 	"github.com/beshenkaD/maschinenkonzept/core"
 	_ "github.com/beshenkaD/maschinenkonzept/me"
 	_ "github.com/beshenkaD/maschinenkonzept/ping"
 	_ "github.com/beshenkaD/maschinenkonzept/quote"
+	_ "github.com/beshenkaD/maschinenkonzept/set"
 )
 
 func main() {

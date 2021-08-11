@@ -100,6 +100,21 @@ func GetConversationMembers(chat *Chat) ([]item, error) {
 	return items, nil
 }
 
+func IsAdmin(chat *Chat, user *User) (bool, error) {
+	items, err := GetConversationMembers(chat)
+	if err != nil {
+		return false, err
+	}
+
+	for _, i := range items {
+		if i.IsAdmin && (i.MemberID == user.ID) {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
 func DeleteMessages(chat *Chat, messageIds []int) error {
 	_, err := Vk.MessagesDelete(api.Params{
 		"delete_for_all":           true,
