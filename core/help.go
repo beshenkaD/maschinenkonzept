@@ -9,6 +9,9 @@ const (
 	helpCommand = "help"
 )
 
+/*
+ */
+
 func (b *Bot) help(i *CommandInput) {
 	var args string
 

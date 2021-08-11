@@ -19,7 +19,7 @@ import (
 
 const (
 	fontSize = 20
-	// Image must always be 800 pixels wide, but height may vary
+	// Image must always be 700 pixels wide, but height may vary
 	width     = 700
 	minHeight = 400
 )
@@ -244,7 +244,7 @@ func generateQuote(photo image.Image, firstName, lastName, quote string, self bo
 	dc.DrawString(name, float64(nx), float64(ny))
 
 	// Draw time
-	t := time.Now().UTC().Format("01.02.2006 15:04")
+	t := time.Now().UTC().Format("02.01.2006 15:04")
 	dc.DrawString(t, float64(nx+510), float64(ny))
 
 	// Draw photo and make it round
