@@ -13,7 +13,7 @@ func me(i *core.CommandInput) (string, error) {
 	}
 
 	s := strings.Join(i.Args, " ")
-	out := fmt.Sprintf("*%s %s %s", i.User.FirstName, i.User.LastName, s)
+	out := fmt.Sprintf("%s %s %s", i.User.FirstName, i.User.LastName, s)
 
 	core.DeleteMessages(i.Chat, []int{i.Message.ConversationMessageID})
 
