@@ -11,7 +11,7 @@ func ping(i *core.CommandInput) (string, error) {
 func init() {
 	core.RegisterCommand(
 		"ping",
-		"alive?",
+		"Проверяет жив ли бот",
 		nil,
 		ping)
 }

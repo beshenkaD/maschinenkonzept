@@ -7,11 +7,10 @@ import (
 func init() {
 	core.RegisterCommand(
 		"kick",
-		"Kick user from conferention",
+		"Исключает пользователя из беседы. Можно использовать аргументы или ответ на сообщение (только для админов)",
 		[]core.HelpParam{
-			{Name: "IDs", Description: "kick by ID(s)", Optional: true},
-			{Name: "Mentions", Description: "kick by mention(s)", Optional: true},
-			{Name: "Reply", Description: "kick by reply message", Optional: true},
+			{Name: "ID(s)", Description: "Один или несколько ID пользователей которых надо исключить", Optional: true},
+			{Name: "Упоминания", Description: "Одно или несколько упоминаний пользователей которых надо исключить. Упомянуть пользователя можно с помощью @ или *", Optional: true},
 		},
 		kick)
 }

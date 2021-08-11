@@ -13,7 +13,7 @@ func me(i *core.CommandInput) (string, error) {
 	}
 
 	s := strings.Join(i.Args, " ")
-	out := fmt.Sprintf("*%s %s %s*", i.User.FirstName, i.User.LastName, s)
+	out := fmt.Sprintf("*%s %s %s", i.User.FirstName, i.User.LastName, s)
 
 	core.DeleteMessages(i.Chat, []int{i.Message.ConversationMessageID})
 
@@ -23,7 +23,7 @@ func me(i *core.CommandInput) (string, error) {
 func init() {
 	core.RegisterCommand(
 		"me",
-		"me command lol",
+		"Позволяет отправить сообщение о себе от третьего лица. Бот также удаляет изначальное сообщение если может это сделать",
 		nil,
 		me)
 }

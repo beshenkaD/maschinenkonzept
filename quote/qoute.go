@@ -361,5 +361,13 @@ func quote(i *core.CommandInput) (string, error) {
 }
 
 func init() {
-	core.RegisterCommand("quote", "", nil, quote)
+	core.RegisterCommand(
+		"quote",
+		"Создает цитату из пересланных сообщений или из сообщений на которые вы ответили",
+		[]core.HelpParam{
+			{Name: "dark", Description: "Создает цитату с черным фоном и белым текстом", Optional: true},
+			{Name: "light", Description: "Создает цитату с белым фоном и черным текстом", Optional: true},
+			{Name: "rainbow", Description: "Создает гейскую цитату великого пидораса", Optional: true},
+		},
+		quote)
 }
